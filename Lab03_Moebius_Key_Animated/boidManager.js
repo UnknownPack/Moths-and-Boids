@@ -1,6 +1,7 @@
 import Boid from './boids';  
 
 class BoidManager {
+    
     constructor(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, spawnRadius, scene) {
         this.numberOfBoids = numberOfBoids;
         this.scene = scene;  
@@ -16,9 +17,9 @@ class BoidManager {
         this.spawnRadius = spawnRadius;
         
         for (let i = 0; i < this.numberOfBoids; i++) {
-            letspawnPosition = new THREE.Vector3(
+            let spawnPosition = new THREE.Vector3(
                 this.getRandomInt(-this.spawnRadius, this.spawnRadius), 
-                this.getRandomInt(-this.this.spawnRadius, this.spawnRadius), 
+                this.getRandomInt(-this.spawnRadius, this.spawnRadius), 
                 this.getRandomInt(-this.spawnRadius, this.spawnRadius));
 
             const boid = new Boid(spawnPosition, this.velocity, this.maxSpeed, 
@@ -53,3 +54,4 @@ class BoidManager {
 
 
 }
+export default BoidManager;

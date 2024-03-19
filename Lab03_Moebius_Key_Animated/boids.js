@@ -1,5 +1,4 @@
-import * as THREE from 'three';
-export default Boid;
+import * as THREE from 'three'; 
 
 class Boid{
 
@@ -40,7 +39,7 @@ class Boid{
         // I will use spheres to represent the moth
 
         const geometry = new THREE.SphereGeometry(1, 16, 16);
-        const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const material = new THREE.MeshBasicMaterial({ color: 0xfffffff });
         this.boidMesh = new THREE.Mesh(geometry, material);
         this.boidMesh.position.copy(this.position);
     }
@@ -70,3 +69,4 @@ class Boid{
     
 
 }
+export default Boid;
