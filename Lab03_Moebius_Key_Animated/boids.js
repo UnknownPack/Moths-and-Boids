@@ -19,7 +19,6 @@ class Boid{
     update(){
         this.velocity.clampLength(0, this.maxSpeed);
         this.position.add(this.velocity);
-
         if (this.boidMesh) {
             //sets boid mesh position
             this.boidMesh.position.copy(this.position);

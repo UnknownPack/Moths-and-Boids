@@ -51,17 +51,18 @@
     //create the scene
     var scene = new THREE.Scene( );
     var ratio = window.innerWidth/window.innerHeight;
-    //create the perspective camera
-    //for parameters see https://threejs.org/docs/#api/cameras/PerspectiveCamera
     var camera = new THREE.PerspectiveCamera(45,ratio,0.1,1000);
+
     //set the camera position
     camera.position.set(0,0,15);
-    // and the direction
 	  camera.lookAt(0,0,1);
+
     //create the webgl renderer
     var renderer = new THREE.WebGLRenderer( );
+
     //set the size of the rendering window
     renderer.setSize(window.innerWidth,window.innerHeight);
+
     //add the renderer to the current document
     document.body.appendChild(renderer.domElement );
 
@@ -87,11 +88,6 @@
 	// CONTROLS //
 	//////////////
 
-	// move mouse and: left   click to rotate,
-	//                 middle click to zoom,
-	//                 right  click to pan
-  // add the new control and link to the current camera to transform its position
-
   var controls = new OrbitControls( camera, renderer.domElement );
 
   var reverse=false;
@@ -107,7 +103,7 @@
   };
   requestAnimationFrame(MyUpdateLoop);
 
-  //keyboard functions, change parameters values
+  
     function handleKeyDown(event) {
   
     }
