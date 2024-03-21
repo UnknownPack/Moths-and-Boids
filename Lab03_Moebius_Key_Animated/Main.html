@@ -44,10 +44,7 @@
 	<script type="module">
 
   import * as THREE from 'three';
-	import { OrbitControls } from './build/controls/OrbitControls.js';
-  import Boid from './boids.js';
-  import BoidManager from './boidManager.js';
-
+	import { OrbitControls } from './build/controls/OrbitControls.js'; 
      
     var scene = new THREE.Scene( );
     var ratio = window.innerWidth/window.innerHeight;
@@ -61,9 +58,140 @@
     renderer.setSize(window.innerWidth,window.innerHeight);
     document.body.appendChild(renderer.domElement );
 
+    var floorGeometry = new THREE.PlaneGeometry(100, 100, 10, 10);
+    var floorMaterial = new THREE.MeshBasicMaterial({ color: 0x808080, side: THREE.DoubleSide });
+    var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI / 2; // Rotate the floor to be horizontal
+    scene.add(floor);
+
+
   //////////////
 	//   Boids  //
 	//////////////
+
+  class Boid{
+
+constructor(position, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, scene) {
+    this.position = position; 
+    this.velocity = velocity; 
+    this.maxSpeed = maxSpeed; 
+    this.maxForce = maxForce; 
+    this.lightPoint = lightPoint;  
+    this.lightAttraction = lightAttraction;
+    this.searchRadius = searchRadius; 
+    this.scene = scene;
+    this.boidMesh = null; 
+
+    this.initBoidMesh();
+}
+
+update(){
+    this.velocity.clampLength(0, this.maxSpeed);
+    this.position.add(this.velocity);
+    if (this.boidMesh) {
+        //sets boid mesh position
+        this.boidMesh.position.copy(this.position);
+    }
+}
+
+render(){
+    //checks if boidMesh is not null and if this mesh is not already in the scene
+    if (this.boidMesh && !this.scene.getObjectById(this.boidMesh.id)) {
+        //if both are true, it adds the boid mesh to the scene
+        this.scene.add(this.boidMesh);
+    }
+}
+
+initBoidMesh() {
+    // I'd reckon you can change the mesh of the moth here
+    // I will use spheres to represent the moth
+
+    const geometry = new THREE.SphereGeometry(1, 16, 16);
+    const material = new THREE.MeshBasicMaterial({ color: 0xfffffff });
+    this.boidMesh = new THREE.Mesh(geometry, material);
+    this.boidMesh.position.copy(this.position);
+}
+
+
+attractionToLight(){
+    const lightAttractionForce = new THREE.Vector3().subVectors(this.lightPoint, this.position);
+    lightAttractionForce.multiplyScalar(this.lightAttraction); 
+    return lightAttractionForce;
+}
+
+avoidanceBehaviour(obstacles){
+    let avoidanceForce = new THREE.Vector3(); 
+
+    for (let obstacle of obstacles) {  
+        if (obstacle !== this) { 
+            var distance = this.position.distanceTo(obstacle.position);  
+            if (distance < this.searchRadius) {  
+                var direction = new THREE.Vector3().subVectors(this.position, obstacle.position).normalize(); 
+                avoidanceForce.add(direction);  
+            }
+        }
+    }
+
+    return avoidanceForce;  
+}
+
+
+}
+
+class BoidManager {
+    
+    constructor(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, spawnRadius, scene) {
+        this.numberOfBoids = numberOfBoids;
+        this.scene = scene;  
+        this.boids = [];  
+        this.obstacles = obstacles;
+
+        this.velocity = velocity; 
+        this.maxSpeed = maxSpeed; 
+        this.maxForce = maxForce; 
+        this.searchRadius = searchRadius; 
+        this.lightPoint = lightPoint;  
+        this.lightAttraction = lightAttraction; 
+        this.spawnRadius = spawnRadius;
+        
+        for (let i = 0; i < this.numberOfBoids; i++) {
+            let spawnPosition = new THREE.Vector3(
+                this.getRandomInt(-this.spawnRadius, this.spawnRadius), 
+                this.getRandomInt(-this.spawnRadius, this.spawnRadius), 
+                this.getRandomInt(-this.spawnRadius, this.spawnRadius));
+
+            const boid = new Boid(spawnPosition, this.velocity, this.maxSpeed, 
+                                    this.maxForce, this.searchRadius, 
+                                    this.lightPoint, this.lightAttraction, this.scene);
+
+            this.boids.push(boid);
+        }
+    }
+
+    update() {
+        for (const boid of this.boids) {
+            this.obstacles.push(boid);
+        }
+
+        for (const boid of this.boids) {
+            const lightAttractionForce = boid.attractionToLight();
+            const avoidanceForce = boid.avoidanceBehaviour(this.obstacles);
+            boid.update();
+        }
+    }
+
+    render() { 
+        for (const boid of this.boids) {
+            boid.render();
+        }
+    }
+
+    getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+
+}
   
   // Create boid manager
   //these paramters can be changed
