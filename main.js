@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { OrbitControls } from './build/controls/OrbitControls.js';
+//import { OrbitControls } from './build/controls/OrbitControls.js';
 import { EnvironmentGenerator } from './EnvironmentGenerator.js';
-
+import { InteractionHandler } from './InteractionHandler.js';
 
 var scene = new THREE.Scene( );
 var ratio = window.innerWidth/window.innerHeight;
@@ -11,21 +11,36 @@ var camera = new THREE.PerspectiveCamera(45,ratio,0.1,1000);
 camera.position.set(0,0,15);
 camera.lookAt(0,0,1);
 
+// Creates lightning environment
 var ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
 scene.add(ambientLight);
 var directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(0,30,0);
 scene.add(directionalLight);
 
+// Creates the renderer
 var renderer = new THREE.WebGLRenderer( );
 renderer.setSize(window.innerWidth,window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement );
 
+// Generates the environment
 var environment = new EnvironmentGenerator(scene);
-//generate a plane ground
+// Generates a plane ground
 environment.generateGround(100,100);
+
+// TODO change to light source
+// creates a cube as a temporary reference for interaction 
+const cube_geometry = new THREE.BoxGeometry();
+const cube_material = new THREE.MeshPhongMaterial({ color: 0xff0000, transparent: true });
+const cube = new THREE.Mesh(cube_geometry, cube_material);
+cube.position.y = 2;
+
+// Makes cube draggable
+const interactionHandler = new InteractionHandler(camera, renderer);
+interactionHandler.addDragObject(cube);
+scene.add(cube);
 
 
 function ClearScene()
@@ -57,7 +72,7 @@ function CreateScene()
 //                 right  click to pan
 // add the new control and link to the current camera to transform its position
 
-var controls = new OrbitControls( camera, renderer.domElement );
+// var controls = new OrbitControls( camera, renderer.domElement );
 
 //final update loop
 var MyUpdateLoop = function ( )
@@ -68,7 +83,7 @@ CreateScene();
 
 renderer.render(scene,camera);
 
-controls.update();
+// controls.update();
 
 requestAnimationFrame(MyUpdateLoop);
 
