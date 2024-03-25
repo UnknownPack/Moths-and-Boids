@@ -72,8 +72,7 @@
 
   class Boid{
 
-    constructor(position, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, scene) {
-      //console.log("Initializing Boid");
+    constructor(position, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, scene) { 
         this.position = position; 
         this.velocity = velocity; 
         this.maxSpeed = maxSpeed; 
@@ -145,7 +144,6 @@
   class BoidManager {
       
       constructor(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, spawnRadius, scene) {
-        //console.log("Initializing BoidManager");
           this.numberOfBoids = numberOfBoids;
           this.scene = scene;  
           this.boids = [];  
@@ -176,24 +174,28 @@
                                       this.lightPoint, this.lightAttraction, this.scene);
 
               this.boids.push(boid);
-          }
+          }  
       }
 
-      updateBoids() {
-        console.log("Iterating over " + this.boids.length + " boids in update");
-
-          for (const boid of this.boids) {
+      updateBoids() { 
+        for (const boid of this.boids) {
               this.obstacles.push(boid);
           }
 
           for (const boid of this.boids) {
-              const lightAttractionForce = boid.attractionToLight();
-              const avoidanceForce = boid.avoidanceBehaviour(this.obstacles);
+            var lightAttractionForce = boid.attractionToLight();
+            var avoidanceForce = boid.avoidanceBehaviour(this.obstacles);
+
+            //change value of 10 if you want
+            if(boid.position.distanceTo(this.lightPoint) > 10){
               boid.applyForce(lightAttractionForce);
-              boid.applyForce(avoidanceForce);
-              boid.update();
-              boid.boieRender();
+            } 
+            boid.applyForce(avoidanceForce); 
+
+            boid.update();
+            boid.boieRender();
           }
+
       }
 
         getRandomInt(min, max) {
@@ -213,9 +215,9 @@
   //these paramters can be changed
   const numberOfBoids = 10;
     const obstacles = [];
-    const velocity = 0.001;
-    const maxSpeed = 0.005;
-    const maxForce = 0.001;
+    const velocity = 0.1;
+    const maxSpeed = 0.1;
+    const maxForce = 0.1;
     const searchRadius = 3;
     const lightPoint = new THREE.Vector3(0, 10, 0);
     const lightAttraction = 1;
@@ -234,8 +236,7 @@
   //final update loop
   var MyUpdateLoop = function ()
   {
-    renderer.render(scene,camera);
-    //console.log("Rendering loop");
+    renderer.render(scene,camera); 
     boidManager.updateBoids();
     controls.update();
     requestAnimationFrame(MyUpdateLoop);
