@@ -116,7 +116,7 @@
 
     applyForce(force) {
             // Assume mass = 1 for simplicity
-            this.acceleration.add(force);
+            this.velocity.add(force);
         }
 
     attractionToLight(){
@@ -211,11 +211,11 @@
   
   // Create boid manager
   //these paramters can be changed
-  const numberOfBoids = 50;
+  const numberOfBoids = 10;
     const obstacles = [];
-    const velocity = 0.1;
-    const maxSpeed = 1;
-    const maxForce = 0.1;
+    const velocity = 0.001;
+    const maxSpeed = 0.005;
+    const maxForce = 0.001;
     const searchRadius = 3;
     const lightPoint = new THREE.Vector3(0, 10, 0);
     const lightAttraction = 1;
