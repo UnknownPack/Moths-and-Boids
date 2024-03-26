@@ -107,16 +107,18 @@
         // I'd reckon you can change the mesh of the moth here
         // I will use spheres to represent the moth
 
-        const geometry = new THREE.SphereGeometry(1, 16, 16);
+        const geometry = new THREE.SphereGeometry(0.5, 16, 16);
         const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         this.boidMesh = new THREE.Mesh(geometry, material);
         this.boidMesh.position.copy(this.position);
     }
 
     applyForce(force) {
-            // Assume mass = 1 for simplicity
-            this.velocity.add(force);
-        }
+      // Assume mass = 1 for simplicity
+        let smoothingFactor = 0.1;
+        const smoothedForce = force.clone().multiplyScalar(smoothingFactor);
+        this.velocity.add(smoothedForce);
+      }
 
     attractionToLight(){
         const lightAttractionForce = new THREE.Vector3().subVectors(this.lightPoint, this.position);
@@ -187,7 +189,7 @@
             var avoidanceForce = boid.avoidanceBehaviour(this.obstacles);
 
             //change value of 10 if you want
-            if(boid.position.distanceTo(this.lightPoint) > 10){
+            if(boid.position.distanceTo(this.lightPoint) > 25){
               boid.applyForce(lightAttractionForce);
             } 
             boid.applyForce(avoidanceForce); 
@@ -213,13 +215,13 @@
   
   // Create boid manager
   //these paramters can be changed
-  const numberOfBoids = 10;
+  const numberOfBoids = 50;
     const obstacles = [];
     const velocity = 0.1;
     const maxSpeed = 0.1;
     const maxForce = 0.1;
     const searchRadius = 3;
-    const lightPoint = new THREE.Vector3(0, 10, 0);
+    const lightPoint = new THREE.Vector3(0, 15, 0);
     const lightAttraction = 1;
     const spawnRadius = 10;
     const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, spawnRadius, scene);
