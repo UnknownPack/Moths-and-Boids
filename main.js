@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from './build/controls/OrbitControls.js';
 import { EnvironmentGenerator } from './EnvironmentGenerator.js';
 import { InteractionHandler } from './InteractionHandler.js';
+import { BoidManager } from './BoidManager.js';
 
 
 var scene = new THREE.Scene( );
@@ -99,6 +100,24 @@ function CreateScene()
 }
 
 //////////////
+//  Boids   //
+//////////////
+
+  // Create boid manager
+  //these paramters can be changed
+  const numberOfBoids = 50;
+  const obstacles = [];
+  const velocity = 0.1;
+  const maxSpeed = 0.1;
+  const maxForce = 0.1;
+  const searchRadius = 3;
+  // change lightPoint Vector3 to light
+  const lightPoint = new THREE.Vector3(0, 15, 0);
+  const lightAttraction = 1;
+  const spawnRadius = 10;
+  const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, spawnRadius, scene);
+
+//////////////
 // CONTROLS //
 //////////////
 
@@ -111,17 +130,14 @@ var controls = new OrbitControls( camera, renderer.domElement );
 
 //final update loop
 var MyUpdateLoop = function ( )
-{
-//ClearScene(); 
-
+{ 
 CreateScene();
-
 renderer.render(scene,camera);
 
-// controls.update();
+boidManager.updateBoids();
+//controls.update(); 
 
 requestAnimationFrame(MyUpdateLoop);
-
 };
 
 requestAnimationFrame(MyUpdateLoop);
