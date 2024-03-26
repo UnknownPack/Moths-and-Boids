@@ -1,0 +1,218 @@
+import * as THREE from 'three';
+import { OrbitControls } from './build/controls/OrbitControls.js';   
+ 
+var scene = new THREE.Scene( );
+var ratio = window.innerWidth/window.innerHeight;
+var camera = new THREE.PerspectiveCamera(45,ratio,0.1,1000); 
+camera.position.set(0,0,-15);
+camera.lookAt(0,0,1);
+
+var renderer = new THREE.WebGLRenderer( ); 
+renderer.setSize(window.innerWidth,window.innerHeight); 
+var renderer = new THREE.WebGLRenderer( );
+renderer.setSize(window.innerWidth,window.innerHeight);
+document.body.appendChild(renderer.domElement );
+
+var floorGeometry = new THREE.PlaneGeometry(100, 100, 10, 10);
+var floorMaterial = new THREE.MeshBasicMaterial({ color: 0x808080, side: THREE.DoubleSide });
+var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+floor.rotation.x = -Math.PI / 2; // Rotate the floor to be horizontal
+floor.position.set(0,-10,0);
+scene.add(floor);
+
+
+//////////////
+//   Boids  //
+//////////////
+
+class Boid{
+  constructor(position, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, scene) { 
+      this.position = position; 
+      this.velocity = velocity; 
+      this.maxSpeed = maxSpeed; 
+      this.maxForce = maxForce; 
+      this.lightPoint = lightPoint;  
+      this.lightAttraction = lightAttraction;
+      this.searchRadius = searchRadius; 
+      this.scene = scene;
+      this.boidMesh = null; 
+      this.acceleration = new THREE.Vector3();
+      this.initBoidMesh();
+  }
+  
+  update(){
+      this.velocity.clampLength(0, this.maxSpeed);
+      this.position.add(this.velocity);
+      if (this.boidMesh) {
+          //sets boid mesh position
+          this.boidMesh.position.copy(this.position);
+      }
+  }
+  
+  boieRender(){
+      //checks if boidMesh is not null and if this mesh is not already in the scene
+      if (this.boidMesh && !this.scene.getObjectById(this.boidMesh.id)) {
+          //if both are true, it adds the boid mesh to the scene
+          this.scene.add(this.boidMesh);
+      }
+  }
+  
+  initBoidMesh() {
+      // I'd reckon you can change the mesh of the moth here
+      // I will use spheres to represent the moth
+  
+      const geometry = new THREE.SphereGeometry(0.5, 16, 16);
+      const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+      this.boidMesh = new THREE.Mesh(geometry, material);
+      this.boidMesh.position.copy(this.position);
+  }
+  
+  applyForce(force) {
+    // Assume mass = 1 for simplicity
+      let smoothingFactor = 0.1;
+      const smoothedForce = force.clone().multiplyScalar(smoothingFactor);
+      this.velocity.add(smoothedForce);
+    }
+  
+  attractionToLight(){
+      const lightAttractionForce = new THREE.Vector3().subVectors(this.lightPoint, this.position);
+      lightAttractionForce.multiplyScalar(this.lightAttraction); 
+      return lightAttractionForce;
+  }
+  
+  avoidanceBehaviour(obstacles){
+      let avoidanceForce = new THREE.Vector3(); 
+  
+      for (let obstacle of obstacles) {  
+          if (obstacle !== this) { 
+              var distance = this.position.distanceTo(obstacle.position);  
+              if (distance < this.searchRadius) {  
+                  var direction = new THREE.Vector3().subVectors(this.position, obstacle.position).normalize(); 
+                  avoidanceForce.add(direction);  
+              }
+          }
+      }
+  
+    return avoidanceForce;  
+  }
+} 
+ class BoidManager {
+    constructor(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, spawnRadius, scene) {
+        this.numberOfBoids = numberOfBoids;
+        this.scene = scene;  
+        this.boids = [];  
+        this.obstacles = obstacles;
+  
+        this.velocity = velocity; 
+        this.maxSpeed = maxSpeed; 
+        this.maxForce = maxForce; 
+        this.searchRadius = searchRadius; 
+        this.lightPoint = lightPoint;  
+        this.lightAttraction = lightAttraction; 
+        this.spawnRadius = spawnRadius;
+        
+        for (let i = 0; i < this.numberOfBoids; i++) {
+            let spawnPosition = new THREE.Vector3(
+              this.getRandomInt(-this.spawnRadius, this.spawnRadius), 
+              this.getRandomInt(-this.spawnRadius, this.spawnRadius), 
+              this.getRandomInt(-this.spawnRadius, this.spawnRadius));
+  
+              const boidVelocity = new THREE.Vector3(
+              this.getRandomFloat(-velocity, velocity),
+              this.getRandomFloat(-velocity, velocity),
+              this.getRandomFloat(-velocity, velocity)
+          ).normalize().multiplyScalar(maxSpeed);
+  
+            const boid = new Boid(spawnPosition, boidVelocity, this.maxSpeed, 
+                                    this.maxForce, this.searchRadius, 
+                                    this.lightPoint, this.lightAttraction, this.scene);
+  
+            this.boids.push(boid);
+        }  
+    }
+  
+    updateBoids() { 
+      for (const boid of this.boids) {
+            this.obstacles.push(boid);
+        }
+  
+        for (const boid of this.boids) {
+          var lightAttractionForce = boid.attractionToLight();
+          var avoidanceForce = boid.avoidanceBehaviour(this.obstacles);
+  
+          //change value of 10 if you want
+          if(boid.position.distanceTo(this.lightPoint) > 25){
+            boid.applyForce(lightAttractionForce);
+          } 
+          boid.applyForce(avoidanceForce); 
+  
+          boid.update();
+          boid.boieRender();
+        }
+  
+    }
+  
+      getRandomInt(min, max) {
+          return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+  
+      getRandomFloat(min, max) {
+      return Math.random() * (max - min) + min;
+  }
+}
+
+
+// Create boid manager
+//these paramters can be changed
+const numberOfBoids = 50;
+const obstacles = [];
+const velocity = 0.1;
+const maxSpeed = 0.1;
+const maxForce = 0.1;
+const searchRadius = 3;
+const lightPoint = new THREE.Vector3(0, 15, 0);
+const lightAttraction = 1;
+const spawnRadius = 10;
+const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, spawnRadius, scene);
+
+
+//////////////
+// CONTROLS //
+//////////////
+
+var controls = new OrbitControls( camera, renderer.domElement );
+
+var reverse=false;
+
+//final update loop
+var MyUpdateLoop = function ()
+{
+renderer.render(scene,camera); 
+boidManager.updateBoids();
+controls.update();
+requestAnimationFrame(MyUpdateLoop);
+
+};
+requestAnimationFrame(MyUpdateLoop);
+
+
+function handleKeyDown(event) {
+
+}
+
+//add keyboard listener
+window.addEventListener('keydown', handleKeyDown, false);
+
+//this fucntion is called when the window is resized
+var MyResize = function ( )
+{
+var width = window.innerWidth;
+var height = window.innerHeight;
+renderer.setSize(width,height);
+camera.aspect = width/height;
+camera.updateProjectionMatrix();
+renderer.render(scene,camera);
+};
+
+//link the resize of the window to the update of the camera
+window.addEventListener( 'resize', MyResize);
