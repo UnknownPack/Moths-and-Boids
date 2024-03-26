@@ -30,6 +30,9 @@ export class EnvironmentGenerator{
             obj.traverse(function (child) {
                 if (child instanceof THREE.Mesh) {
                     console.log(child);
+                    //flame,flame1,flame4,flame5,flame6
+                    //log,log1,log2,log4
+                    //rock1,2,3,4,5,6,7,8,9,10,11,12,13
                 }
             });
         });
@@ -52,8 +55,13 @@ export class EnvironmentGenerator{
 
         sca.makeScale(10/size.length(),10/size.length(),10/size.length());
         tra.makeTranslation (-center.x,-center.y,-center.z);
-        rot.makeRotationY(270*Math.PI/180);
-        combined.multiply(rot);
+        if(filePath == 'models/american_style_house/scene.gltf'){
+            rot.makeRotationY(270*Math.PI/180);
+            combined.multiply(rot);
+        }else if(filePath == 'models/forest_house/scene.gltf'){
+            rot.makeRotationY(90*Math.PI/180);
+            combined.multiply(rot);
+        }
         combined.multiply(sca);     
         combined.multiply(tra);
         houseMesh.applyMatrix4(combined);

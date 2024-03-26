@@ -30,13 +30,13 @@ document.body.appendChild(renderer.domElement );
 var environment = new EnvironmentGenerator(scene);
 //environment.generateGround(100,100);
 var filepath = 'models/american_style_house/scene.gltf';
-//environment.loadGLTFEnvironmentModel(filepath);
-var filepath2 = 'models/Campfire.obj';
-environment.loadOBJEnvironmentModel(filepath2);
-// Generates a plane ground
-environment.generateGround(100,100);
+var filepath2 = 'models/forest_house/scene.gltf';
+environment.loadGLTFEnvironmentModel(filepath);
+var filepath3 = 'models/Campfire.obj';
+//environment.loadOBJEnvironmentModel(filepath2);
 
 // TODO change to light source
+
 // creates a cube as a temporary reference for interaction 
 const cube_geometry = new THREE.BoxGeometry();
 const cube_material = new THREE.MeshPhongMaterial({ color: 0xff0000, transparent: true });
