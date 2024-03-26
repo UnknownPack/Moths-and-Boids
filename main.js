@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-//import { OrbitControls } from './build/controls/OrbitControls.js';
+import { OrbitControls } from './build/controls/OrbitControls.js';
 import { EnvironmentGenerator } from './EnvironmentGenerator.js';
 import { InteractionHandler } from './InteractionHandler.js';
 
@@ -29,6 +29,7 @@ document.body.appendChild(renderer.domElement );
 // Generates the environment
 var environment = new EnvironmentGenerator(scene);
 //environment.generateGround(100,100);
+
 var filepath = 'models/american_style_house/scene.gltf';
 var filepath2 = 'models/forest_house/scene.gltf';
 environment.loadGLTFEnvironmentModel(filepath);
@@ -41,12 +42,40 @@ var filepath3 = 'models/Campfire.obj';
 const cube_geometry = new THREE.BoxGeometry();
 const cube_material = new THREE.MeshPhongMaterial({ color: 0xff0000, transparent: true });
 const cube = new THREE.Mesh(cube_geometry, cube_material);
-cube.position.y = 2;
+cube.name = "cube";
+cube.position.y = 3;
+cube.position.z = 3;
 
 // Makes cube draggable
 const interactionHandler = new InteractionHandler(camera, renderer);
 interactionHandler.addDragObject(cube);
 scene.add(cube);
+
+var mouse = new THREE.Vector2;
+var raycaster = new THREE.Raycaster();
+var selectedObj = false;
+// If click on cube, drag cube, otherwise change view
+function onDocumentMouseDown( event ) {
+  mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
+  mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
+  raycaster.setFromCamera( mouse, camera );
+
+  var intersects = raycaster.intersectObjects( scene.children, false );
+
+  if ( intersects.length > 0 && (intersects[ 0 ].object.name=="cube")) {
+        selectedObj = true;
+        controls.enabled = false;
+  }
+}
+function onDocumentMouseUp( event ) {
+  if(selectedObj){
+    selectedObj = false;
+    controls.enabled = true;
+  }
+}
+document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+
 
 
 function ClearScene()
@@ -78,7 +107,7 @@ function CreateScene()
 //                 right  click to pan
 // add the new control and link to the current camera to transform its position
 
-// var controls = new OrbitControls( camera, renderer.domElement );
+var controls = new OrbitControls( camera, renderer.domElement );
 
 //final update loop
 var MyUpdateLoop = function ( )
