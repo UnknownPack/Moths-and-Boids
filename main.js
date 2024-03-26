@@ -3,6 +3,7 @@ import { OrbitControls } from './build/controls/OrbitControls.js';
 import { EnvironmentGenerator } from './EnvironmentGenerator.js';
 
 
+
 var scene = new THREE.Scene( );
 var ratio = window.innerWidth/window.innerHeight;
 //create the perspective camera
@@ -24,8 +25,8 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement );
 
 var environment = new EnvironmentGenerator(scene);
-//generate a plane ground
-environment.generateGround(100,100);
+//environment.generateGround(100,100);
+environment.loadGLTFEnvironmentModel();
 
 
 function ClearScene()
