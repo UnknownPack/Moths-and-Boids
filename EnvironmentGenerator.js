@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { PLYLoader } from './build/loaders/PLYLoader.js';
-import {GLTFLoader} from './build/loaders/GLTFLoader.js';
+import { GLTFLoader} from './build/loaders/GLTFLoader.js';
+import { OBJLoader } from './build/loaders/OBJLoader.js';
+
 export class EnvironmentGenerator{
     constructor(scene) {
         this.scene = scene;
@@ -21,9 +23,21 @@ export class EnvironmentGenerator{
     generateEnvironment(){
     }
 
-    loadGLTFEnvironmentModel(){
+    loadOBJEnvironmentModel(filePath){
+        var loader = new OBJLoader();
+        loader.load(filePath, (obj) => {
+            this.scene.add(obj);
+            obj.traverse(function (child) {
+                if (child instanceof THREE.Mesh) {
+                    console.log(child);
+                }
+            });
+        });
+    }
+
+    loadGLTFEnvironmentModel(filePath){
     var loader = new GLTFLoader();
-    loader.load('models/american_style_house/scene.gltf', (gltf) => {
+    loader.load(filePath, (gltf) => {
         //var material = new THREE.MeshPhongMaterial();
         var houseMesh = gltf.scene;
 
@@ -46,11 +60,9 @@ export class EnvironmentGenerator{
         
         this.scene.add(houseMesh);
     });
-
     }
 
     loadPLYEnvironmentModel(){
-    //MESH LOADING
     var loader = new PLYLoader();
     var mesh = null;
     loader.load('models/pieta.ply', ( geometry )=>{

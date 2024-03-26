@@ -26,7 +26,10 @@ document.body.appendChild(renderer.domElement );
 
 var environment = new EnvironmentGenerator(scene);
 //environment.generateGround(100,100);
-environment.loadGLTFEnvironmentModel();
+var filepath = 'models/american_style_house/scene.gltf';
+//environment.loadGLTFEnvironmentModel(filepath);
+var filepath2 = 'models/Campfire.obj';
+environment.loadOBJEnvironmentModel(filepath2);
 
 
 function ClearScene()
