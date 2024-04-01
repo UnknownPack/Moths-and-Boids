@@ -129,12 +129,13 @@ function CreateScene()
 var controls = new OrbitControls( camera, renderer.domElement );
 
 //final update loop
+var clock = new THREE.Clock();
 var MyUpdateLoop = function ( )
 { 
 CreateScene();
 renderer.render(scene,camera);
-
-boidManager.updateBoids();
+var deltaTime = clock.getDelta();
+boidManager.updateBoids(deltaTime);
 //controls.update(); 
 
 requestAnimationFrame(MyUpdateLoop);

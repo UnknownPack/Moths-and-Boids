@@ -36,7 +36,7 @@ import { Boid } from './Boid.js';
           }  
       }
     
-      updateBoids() { 
+      updateBoids(deltaTime) { 
         for (const boid of this.boids) {
               this.obstacles.push(boid);
           }
@@ -47,9 +47,9 @@ import { Boid } from './Boid.js';
     
             //change value of 10 if you want
             if(boid.position.distanceTo(this.lightPoint) > 25){
-              boid.applyForce(lightAttractionForce);
+              boid.applyForce(lightAttractionForce, deltaTime);
             } 
-            boid.applyForce(avoidanceForce); 
+            boid.applyForce(avoidanceForce, deltaTime); 
     
             boid.update();
             boid.boieRender();

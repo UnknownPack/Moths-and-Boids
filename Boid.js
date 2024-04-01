@@ -42,12 +42,31 @@ export class Boid{
         this.boidMesh.position.copy(this.position);
     }
     
-    applyForce(force) {
-      // Assume mass = 1 for simplicity
-        let smoothingFactor = 0.1;
+    applyForce(force, deltaTime) {
+        let inertiaFactor = 0.01; // Controls how quickly the object can change velocity, simulating inertia
+        let smoothingFactor = 10000;
         const smoothedForce = force.clone().multiplyScalar(smoothingFactor);
-        this.velocity.add(smoothedForce);
-      }
+    
+        // Calculate the desired change in velocity, factoring in inertia
+        const deltaV = smoothedForce.multiplyScalar(deltaTime * inertiaFactor);
+    
+        // Add the deltaV to the current velocity, adjusted by deltaTime to ensure frame rate independence
+        this.velocity.add(deltaV);
+    
+        // Optional: Limit the velocity to maxSpeed to prevent it from increasing indefinitely
+        this.velocity.clampLength(0, this.maxSpeed);
+    
+        // If you still want to use an easing function to smooth out the interpolation of the velocity change
+        const targetVelocity = this.velocity.clone().add(deltaV);
+        const interpolationFactor = easeInOut(Math.min(deltaTime, 1.0));
+        this.velocity.lerp(targetVelocity, interpolationFactor);
+    }
+    
+    
+
+    randomMovement(){
+
+    }
     
     attractionToLight(){
         const lightAttractionForce = new THREE.Vector3().subVectors(this.lightPoint, this.position);
@@ -71,3 +90,11 @@ export class Boid{
       return avoidanceForce;  
     }
   } 
+
+  function easeInOut(t) {
+    if (t < 0.5) {
+        return 2 * t * t;
+    } else {
+        return -1 + (4 - 2 * t) * t;
+    }
+}
