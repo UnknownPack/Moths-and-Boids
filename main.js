@@ -3,6 +3,7 @@ import { OrbitControls } from './build/controls/OrbitControls.js';
 import { EnvironmentGenerator } from './EnvironmentGenerator.js';
 import { InteractionHandler } from './InteractionHandler.js';
 import { BoidManager } from './BoidManager.js';
+ 
 
 
 var scene = new THREE.Scene( );
@@ -107,7 +108,7 @@ function CreateScene()
 
   // Create boid manager
   //these paramters can be changed
-  const numberOfBoids = 50;
+  const numberOfBoids = 1000;
   const obstacles = [];
   const velocity = 0.1;
   const maxSpeed = 0.1;
@@ -115,10 +116,10 @@ function CreateScene()
   const searchRadius = 3;
   // change lightPoint Vector3 to lightsource
   const lightPoint = new THREE.Vector3(0, 15, 0);
-  const lightAttraction = 1;
+  const lightAttraction = 100;
   const spawnRadius = 10;
-  const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, spawnRadius, scene);
-
+  const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene);
+ 
 //////////////
 // CONTROLS //
 //////////////
@@ -131,12 +132,16 @@ function CreateScene()
 var controls = new OrbitControls( camera, renderer.domElement );
 
 //final update loop
-var MyUpdateLoop = function ( )
-{ 
+var clock = new THREE.Clock();
+var MyUpdateLoop = function (){ 
 CreateScene();
 renderer.render(scene,camera);
-
-boidManager.updateBoids();
+var deltaTime = clock.getDelta();
+//insert in method bellow, another method that returns the position of the light
+boidManager.setLightPoint(lightPoint);
+boidManager.updateBoids(deltaTime);
+ 
+ 
 //controls.update(); 
 
 requestAnimationFrame(MyUpdateLoop);
