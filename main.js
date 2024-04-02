@@ -3,6 +3,7 @@ import { OrbitControls } from './build/controls/OrbitControls.js';
 import { EnvironmentGenerator } from './EnvironmentGenerator.js';
 import { InteractionHandler } from './InteractionHandler.js';
 import { BoidManager } from './BoidManager.js';
+ 
 
 
 var scene = new THREE.Scene( );
@@ -116,7 +117,7 @@ function CreateScene()
   const lightAttraction = 100;
   const spawnRadius = 10;
   const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene);
-
+ 
 //////////////
 // CONTROLS //
 //////////////

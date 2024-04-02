@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Boid } from './Boid.js';
+import { SpatialGrid } from './spatialGrid';
 
   export class BoidManager {
       constructor(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene) {
@@ -34,16 +35,29 @@ import { Boid } from './Boid.js';
     
               this.boids.push(boid);
           }  
+
+        //SPAITIAL PARTION
+        const gridSize = new THREE.Vector3(100, 100, 100); // Dimensions of the grid
+        const cellSize = 10; // Length of each side of a cubic cell
+        const grid = new SpatialGrid(gridSize, cellSize);
+
       }
+
     
       updateBoids(deltaTime) { 
+        grid.visualize();
+        grid.clear();
         for (const boid of this.boids) {
-              this.obstacles.push(boid);
+            grid.insertBoidAtPosition(boid,boid.givePos());
           }
-    
+          
+          nearbyBoids = [];
           for (const boid of this.boids) {
+            const spatialKey = grid.calculateSpatialKey(boid.givePos()); // Assuming such a method exists to calculate the key from position.
+            const nearbyBoids = grid.getBoidsInAdjacentCellsByKey(spatialKey);
+
             var lightAttractionForce = boid.attractionToLight();
-            var avoidanceForce = boid.avoidanceBehaviour(this.obstacles);
+            var avoidanceForce = boid.avoidanceBehaviour(nearbyBoids);
     
             //change value of 10 if you want
             if(boid.position.distanceTo(this.lightPoint) > 10){
@@ -56,6 +70,8 @@ import { Boid } from './Boid.js';
           }
     
       }
+
+      
 
       setLightPoint(lightPoint){
         this.lightPoint = lightPoint;
@@ -74,4 +90,5 @@ import { Boid } from './Boid.js';
         return Math.random() * (max - min) + min;
     }
   }
+
  

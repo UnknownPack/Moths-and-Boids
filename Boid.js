@@ -12,6 +12,7 @@ export class Boid{
         this.scene = scene;
         this.boidMesh = null;  
         this.boundingSphere = null;
+        this.spatialKey = '';
         this.initBoidMesh();
         this.initBoundingSphere();
     }
@@ -94,8 +95,10 @@ export class Boid{
         return lightAttractionForce;
     }
     
-    avoidanceBehaviour(obstacles){
-        let avoidanceForce = new THREE.Vector3(); 
+    avoidanceBehaviour(obstacles) {
+        let avoidanceForce = new THREE.Vector3();
+        // Define a maximum magnitude for the avoidance force
+        const maxAvoidanceForce = 0.05;
     
         for (let obstacle of obstacles) {  
             if (obstacle !== this) { 
@@ -106,8 +109,24 @@ export class Boid{
                 }
             }
         }
+        
+        if (avoidanceForce.length() > maxAvoidanceForce) {
+            avoidanceForce.normalize().multiplyScalar(maxAvoidanceForce);
+        }
     
-      return avoidanceForce;  
+        return avoidanceForce;
+    }
+
+    updateSpatialKey(spatialKey){
+        this.spatialKey = spatialKey;
+    }
+
+    giveSpatialKey(){
+        return this.spatialKey;
+    }   
+
+    givePos(){
+        return this.position;
     }
   } 
 
