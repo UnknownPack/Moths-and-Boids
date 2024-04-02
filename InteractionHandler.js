@@ -14,7 +14,7 @@ export class InteractionHandler{
             event.object.material.emissive.set( 0xaaaaaa );
         } );
 
-        controls.addEventListener( 'darg', function ( event ) {
+        controls.addEventListener( 'drag', function ( event ) {
             // TODO add physics (latent) to the cable swing
             event.object.material.emissive.set( 0x000000 );
         } );

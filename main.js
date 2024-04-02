@@ -42,15 +42,17 @@ var filepath3 = 'models/Campfire.obj';
 // creates a cube as a temporary reference for interaction 
 const cube_geometry = new THREE.BoxGeometry();
 const cube_material = new THREE.MeshPhongMaterial({ color: 0xff0000, transparent: true });
-const cube = new THREE.Mesh(cube_geometry, cube_material);
-cube.name = "cube";
-cube.position.y = 3;
-cube.position.z = 3;
+const lightsource = new THREE.Mesh(cube_geometry, cube_material);
+lightsource.name = "cube";
+lightsource.position.y = 3;
+lightsource.position.z = 3;
+
+// TODO creates the pointlight of the swinging light
 
 // Makes cube draggable
 const interactionHandler = new InteractionHandler(camera, renderer);
-interactionHandler.addDragObject(cube);
-scene.add(cube);
+interactionHandler.addDragObject(lightsource);
+scene.add(lightsource);
 
 var mouse = new THREE.Vector2;
 var raycaster = new THREE.Raycaster();
@@ -111,7 +113,7 @@ function CreateScene()
   const maxSpeed = 0.1;
   const maxForce = 0.1;
   const searchRadius = 3;
-  // change lightPoint Vector3 to light
+  // change lightPoint Vector3 to lightsource
   const lightPoint = new THREE.Vector3(0, 15, 0);
   const lightAttraction = 1;
   const spawnRadius = 10;
