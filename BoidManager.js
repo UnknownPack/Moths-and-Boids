@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Boid } from './Boid.js';
 
   export class BoidManager {
-      constructor(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, spawnRadius, scene) {
+      constructor(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene) {
           this.numberOfBoids = numberOfBoids;
           this.scene = scene;  
           this.boids = [];  
@@ -12,7 +12,7 @@ import { Boid } from './Boid.js';
           this.maxSpeed = maxSpeed; 
           this.maxForce = maxForce; 
           this.searchRadius = searchRadius; 
-          this.lightPoint = lightPoint;  
+          this.lightPoint = null;  
           this.lightAttraction = lightAttraction; 
           this.spawnRadius = spawnRadius;
           
@@ -46,7 +46,7 @@ import { Boid } from './Boid.js';
             var avoidanceForce = boid.avoidanceBehaviour(this.obstacles);
     
             //change value of 10 if you want
-            if(boid.position.distanceTo(this.lightPoint) > 25){
+            if(boid.position.distanceTo(this.lightPoint) > 10){
               boid.applyForce(lightAttractionForce, deltaTime);
             } 
             boid.applyForce(avoidanceForce, deltaTime); 
@@ -56,6 +56,15 @@ import { Boid } from './Boid.js';
           }
     
       }
+
+      setLightPoint(lightPoint){
+        this.lightPoint = lightPoint;
+        // Update lightPoint for each boid
+        this.boids.forEach(boid => {
+            boid.lightPoint = lightPoint;
+        });
+    }
+    
     
         getRandomInt(min, max) {
             return Math.floor(Math.random() * (max - min + 1)) + min;

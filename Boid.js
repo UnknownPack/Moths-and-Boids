@@ -10,9 +10,10 @@ export class Boid{
         this.lightAttraction = lightAttraction;
         this.searchRadius = searchRadius; 
         this.scene = scene;
-        this.boidMesh = null; 
-        this.acceleration = new THREE.Vector3();
+        this.boidMesh = null;  
+        this.boundingSphere = null;
         this.initBoidMesh();
+        this.initBoundingSphere();
     }
     
     update(){
@@ -21,6 +22,9 @@ export class Boid{
         if (this.boidMesh) {
             //sets boid mesh position
             this.boidMesh.position.copy(this.position);
+        }
+        if (this.boundingSphere) {
+            this.boundingSphere.center.copy(this.position);
         }
     }
     
@@ -41,34 +45,50 @@ export class Boid{
         this.boidMesh = new THREE.Mesh(geometry, material);
         this.boidMesh.position.copy(this.position);
     }
+
+    initBoundingSphere() {
+        // this will be the volume upon which collision detection checks will be made
+        let sphereRadius = this.searchRadius * 2; 
+        this.boundingSphere = new THREE.Sphere(this.position.clone(), sphereRadius);
+    }
     
     applyForce(force, deltaTime) {
-        let inertiaFactor = 0.01; // Controls how quickly the object can change velocity, simulating inertia
-        let smoothingFactor = 10000;
+        let inertiaFactor = 0.001; // Controls how quickly the object can change velocity, simulating inertia
+        let smoothingFactor = 10000000;
         const smoothedForce = force.clone().multiplyScalar(smoothingFactor);
     
         // Calculate the desired change in velocity, factoring in inertia
         const deltaV = smoothedForce.multiplyScalar(deltaTime * inertiaFactor);
     
-        // Add the deltaV to the current velocity, adjusted by deltaTime to ensure frame rate independence
-        this.velocity.add(deltaV);
+        // Shuffle the axes to apply forces in random order
+        const axes = ['x', 'y', 'z'].sort(() => Math.random() - 0.5);
     
-        // Optional: Limit the velocity to maxSpeed to prevent it from increasing indefinitely
+        // Apply the deltaV component by component in the randomized order
+        axes.forEach(axis => {
+            let targetVelocity = new THREE.Vector3();
+            targetVelocity.copy(this.velocity);
+    
+            // Apply the change to the current axis
+            targetVelocity[axis] += deltaV[axis];
+    
+            // Limit the velocity on this axis to prevent it from increasing indefinitely
+            targetVelocity[axis] = Math.min(Math.max(targetVelocity[axis], -this.maxSpeed), this.maxSpeed);
+    
+            // Smooth out the interpolation of the velocity change for this axis
+            const interpolationFactor = easeInOut(Math.min(deltaTime, 1.0));
+            this.velocity[axis] += (targetVelocity[axis] - this.velocity[axis]) * interpolationFactor;
+        });
+    
+        // Ensure the total velocity doesn't exceed maxSpeed
         this.velocity.clampLength(0, this.maxSpeed);
-    
-        // If you still want to use an easing function to smooth out the interpolation of the velocity change
-        const targetVelocity = this.velocity.clone().add(deltaV);
-        const interpolationFactor = easeInOut(Math.min(deltaTime, 1.0));
-        this.velocity.lerp(targetVelocity, interpolationFactor);
-    }
-    
-    
+    }    
 
     randomMovement(){
 
     }
     
     attractionToLight(){
+        if (!this.lightPoint) return new THREE.Vector3(0, 0, 0); // Return a zero vector if lightPoint is not set
         const lightAttractionForce = new THREE.Vector3().subVectors(this.lightPoint, this.position);
         lightAttractionForce.multiplyScalar(this.lightAttraction); 
         return lightAttractionForce;

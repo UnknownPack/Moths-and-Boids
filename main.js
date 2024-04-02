@@ -113,9 +113,9 @@ function CreateScene()
   const searchRadius = 3;
   // change lightPoint Vector3 to light
   const lightPoint = new THREE.Vector3(0, 15, 0);
-  const lightAttraction = 1;
+  const lightAttraction = 100;
   const spawnRadius = 10;
-  const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, spawnRadius, scene);
+  const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene);
 
 //////////////
 // CONTROLS //
@@ -135,7 +135,11 @@ var MyUpdateLoop = function ( )
 CreateScene();
 renderer.render(scene,camera);
 var deltaTime = clock.getDelta();
+//insert in method bellow, another method that returns the position of the light
+boidManager.setLightPoint(lightPoint);
 boidManager.updateBoids(deltaTime);
+ 
+ 
 //controls.update(); 
 
 requestAnimationFrame(MyUpdateLoop);
