@@ -38,6 +38,20 @@ export class spatialGrid{
         boid.updateSpatialKey(key);
     }
 
+    addObjectToSpatialView(Object){
+        const x = Math.floor(Object.position.x / this.cellSize);
+        const y = Math.floor(Object.position.y / this.cellSize);
+        const z = Math.floor(Object.position.z / this.cellSize);
+
+        const key = this._cellKey(x, y, z);
+
+        // Initialize the cell's array if it doesn't already exist.
+        if (!this.cells[key]) {
+            this.cells[key] = [];
+        } 
+        this.cells[key].push(Object);
+    }
+
     getBoidsInAdjacentCellsByKey(spatialKey) {
         // Initialize an array to hold all nearby boids
         let nearbyBoids = [];

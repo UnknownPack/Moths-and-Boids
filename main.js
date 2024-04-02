@@ -67,6 +67,8 @@ function onDocumentMouseDown( event ) {
   if ( intersects.length > 0 && (intersects[ 0 ].object.name=="cube")) {
         selectedObj = true;
         controls.enabled = false;
+        //added this so the cube can be accounted for in spatial partition and this boids will avoid it
+        boidManager.updateObjectPositionInGrid(cube); 
   }
 }
 function onDocumentMouseUp( event ) {
@@ -104,9 +106,11 @@ function CreateScene()
 //  Boids   //
 //////////////
 
+
+
   // Create boid manager
   //these paramters can be changed
-  const numberOfBoids = 1000;
+  const numberOfBoids = 500;
   const obstacles = [];
   const velocity = 0.1;
   const maxSpeed = 0.1;
@@ -117,6 +121,9 @@ function CreateScene()
   const lightAttraction = 100;
   const spawnRadius = 10;
   const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene);
+
+  //add interacble objects
+  boidManager.addNonBoidObeject(cube);
  
 //////////////
 // CONTROLS //
@@ -131,13 +138,20 @@ var controls = new OrbitControls( camera, renderer.domElement );
 
 //final update loop
 var clock = new THREE.Clock();
+var numberOfBoids_adjustable = numberOfBoids
+
+/////////////////
+// Update Loop //
+////////////////
 var MyUpdateLoop = function (){ 
 CreateScene();
 renderer.render(scene,camera);
+
 var deltaTime = clock.getDelta();
 //insert in method bellow, another method that returns the position of the light
 boidManager.setLightPoint(lightPoint);
 boidManager.updateBoids(deltaTime);
+boidManager.manageBoids(numberOfBoids_adjustable)
  
  
 //controls.update(); 
