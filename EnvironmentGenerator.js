@@ -1,9 +1,11 @@
 import * as THREE from 'three';
+import { PLYLoader } from './build/loaders/PLYLoader.js';
+import { GLTFLoader} from './build/loaders/GLTFLoader.js';
+import { OBJLoader } from './build/loaders/OBJLoader.js';
 
 export class EnvironmentGenerator{
     constructor(scene) {
         this.scene = scene;
-
         this.material_ground = new THREE.MeshPhongMaterial({
             color: 0xD2B48C,
             flatShading: true,
@@ -19,8 +21,91 @@ export class EnvironmentGenerator{
         this.scene.add(ground);
     }
     generateEnvironment(){
-
     }
+
+    loadOBJEnvironmentModel(filePath){
+        var loader = new OBJLoader();
+        loader.load(filePath, (obj) => {
+            this.scene.add(obj);
+            obj.traverse(function (child) {
+                if (child instanceof THREE.Mesh) {
+                    console.log(child);
+                    //flame,flame1,flame4,flame5,flame6
+                    //log,log1,log2,log4
+                    //rock1,2,3,4,5,6,7,8,9,10,11,12,13
+                }
+            });
+        });
+    }
+
+    loadGLTFEnvironmentModel(filePath){
+    var loader = new GLTFLoader();
+    loader.load(filePath, (gltf) => {
+        //var material = new THREE.MeshPhongMaterial();
+        var houseMesh = gltf.scene;
+
+        var boundingBox = new THREE.Box3().setFromObject(houseMesh);
+        var center = boundingBox.getCenter(new THREE.Vector3());
+        var size = boundingBox.getSize(new THREE.Vector3());
+
+        var sca = new THREE.Matrix4();
+        var tra = new THREE.Matrix4();
+        var rot = new THREE.Matrix4();
+        var combined = new THREE.Matrix4();
+
+        sca.makeScale(10/size.length(),10/size.length(),10/size.length());
+        tra.makeTranslation (-center.x,-center.y,-center.z);
+        if(filePath == 'models/american_style_house/scene.gltf'){
+            rot.makeRotationY(270*Math.PI/180);
+            combined.multiply(rot);
+        }else if(filePath == 'models/forest_house/scene.gltf'){
+            rot.makeRotationY(90*Math.PI/180);
+            combined.multiply(rot);
+        }
+        combined.multiply(sca);     
+        combined.multiply(tra);
+        houseMesh.applyMatrix4(combined);
+        
+        this.scene.add(houseMesh);
+    });
+    }
+
+    loadPLYEnvironmentModel(){
+    var loader = new PLYLoader();
+    var mesh = null;
+    loader.load('models/pieta.ply', ( geometry )=>{
+        var material = new THREE.MeshPhongMaterial();
+        material.color= new THREE.Color(0.8,1,1);
+        material.wireframe=false;
+        material.shininess=100;
+
+        geometry.computeVertexNormals();
+        mesh = new THREE.Mesh( geometry, material );
+
+        geometry.computeBoundingBox();
+
+        var center = new THREE.Vector3();
+        var size = new THREE.Vector3();
+        geometry.boundingBox.getCenter(center);
+        geometry.boundingBox.getSize(size);
+        var min = geometry.boundingBox.min;
+
+        var sca = new THREE.Matrix4();
+        var tra = new THREE.Matrix4();
+        var combined = new THREE.Matrix4();
+
+        sca.makeScale(20/size.length(),20/size.length(),20/size.length());
+        tra.makeTranslation (-center.x,-center.y,-center.z);
+        combined.multiply(sca);
+        combined.multiply(tra);
+
+        mesh.applyMatrix4(combined);
+
+        this.scene.add( mesh );
+    });
+    }
+
+
     clear(){
 
     }
