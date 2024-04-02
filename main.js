@@ -106,7 +106,7 @@ function CreateScene()
 
   // Create boid manager
   //these paramters can be changed
-  const numberOfBoids = 50;
+  const numberOfBoids = 1000;
   const obstacles = [];
   const velocity = 0.1;
   const maxSpeed = 0.1;
@@ -131,8 +131,7 @@ var controls = new OrbitControls( camera, renderer.domElement );
 
 //final update loop
 var clock = new THREE.Clock();
-var MyUpdateLoop = function ( )
-{ 
+var MyUpdateLoop = function (){ 
 CreateScene();
 renderer.render(scene,camera);
 var deltaTime = clock.getDelta();
