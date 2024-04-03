@@ -122,16 +122,12 @@ function createObjects() {
   bulbShape.setMargin(margin);
   createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
   lightbulb.userData.physicsBody.setFriction(0.5);
+  // scene.add(lightbulb);
 
 
   // creates the pointlight of the swinging light
   const light = new THREE.PointLight(0xfddc5c, 1, 100);
   lightbulb.add(light);
-
-  // Makes lightbulb draggable
-  const interactionHandler = new InteractionHandler(camera, renderer);
-  interactionHandler.addDragObject(lightbulb);
-  scene.add(lightbulb);
 
   // ROPE
   // creates rope graphic object
@@ -165,6 +161,11 @@ function createObjects() {
   rope = new THREE.LineSegments(ropeGeometry, ropeMaterial);
   rope.castShadow = true;
   rope.receiveShadow = true;
+  rope.add(lightbulb)
+
+  // Makes rope draggable
+  const interactionHandler = new InteractionHandler(camera, renderer);
+  interactionHandler.addDragObject(rope);
   scene.add(rope);
 
   // Rope physic object
