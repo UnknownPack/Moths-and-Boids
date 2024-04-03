@@ -7,7 +7,21 @@ import { BoidManager } from './BoidManager.js';
 // GRAPHICS CONST
 let camera, controls, scene, renderer;
 // PHYSICS CONST
+const gravityConstant = - 9.8;
+let collisionConfiguration;
+let dispatcher;
+let broadphase;
+let solver;
+let softBodySolver;
+let physicsWorld;
+
 const margin = 0.05;
+const rigidBodies = [];
+let hinge;
+let rope;
+let transformAux1;
+
+let armMovement = 0;
 
 // Inits physics environment
 Ammo().then(function (AmmoLib) {
@@ -32,7 +46,6 @@ function initGraphics() {
   scene = new THREE.Scene();
   var ratio = window.innerWidth / window.innerHeight;
   //create the perspective camera
-  //for parameters see https://threejs.org/docs/#api/cameras/PerspectiveCamera
   camera = new THREE.PerspectiveCamera(45, ratio, 0.1, 1000);
   camera.position.set(0, 0, 15);
   camera.lookAt(0, 0, 1);
@@ -61,6 +74,23 @@ function initGraphics() {
   // add the new control and link to the current camera to transform its position
 
   controls = new OrbitControls(camera, renderer.domElement);
+}
+
+function initPhysics() {
+
+  // Physics configuration
+
+  collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
+  dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
+  broadphase = new Ammo.btDbvtBroadphase();
+  solver = new Ammo.btSequentialImpulseConstraintSolver();
+  softBodySolver = new Ammo.btDefaultSoftBodySolver();
+  physicsWorld = new Ammo.btSoftRigidDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration, softBodySolver);
+  physicsWorld.setGravity(new Ammo.btVector3(0, gravityConstant, 0));
+  physicsWorld.getWorldInfo().set_m_gravity(new Ammo.btVector3(0, gravityConstant, 0));
+
+  transformAux1 = new Ammo.btTransform();
+
 }
 
 function createObjects() {
@@ -105,7 +135,6 @@ function createObjects() {
 
   // ROPE
   // creates rope graphic object
-  let rope;
   const ropeNumSegments = 10;
   const ropeLength = 4;
   const ropeMass = 3;
@@ -137,7 +166,64 @@ function createObjects() {
   rope.castShadow = true;
   rope.receiveShadow = true;
   scene.add(rope);
+
+  // Rope physic object
+  const softBodyHelpers = new Ammo.btSoftBodyHelpers();
+  const ropeStart = new Ammo.btVector3(ropePos.x, ropePos.y, ropePos.z);
+  const ropeEnd = new Ammo.btVector3(ropePos.x, ropePos.y + ropeLength, ropePos.z);
+  const ropeSoftBody = softBodyHelpers.CreateRope(physicsWorld.getWorldInfo(), ropeStart, ropeEnd, ropeNumSegments - 1, 0);
+  const sbConfig = ropeSoftBody.get_m_cfg();
+  sbConfig.set_viterations(10);
+  sbConfig.set_piterations(10);
+  ropeSoftBody.setTotalMass(ropeMass, false);
+  Ammo.castObject(ropeSoftBody, Ammo.btCollisionObject).getCollisionShape().setMargin(margin * 3);
+  physicsWorld.addSoftBody(ropeSoftBody, 1, - 1);
+  rope.userData.physicsBody = ropeSoftBody;
+  // Disable deactivation
+  ropeSoftBody.setActivationState(4);
+
+  // The base
+  const armMass = 2;
+  const armLength = 3;
+  const pylonHeight = ropePos.y + ropeLength;
+  const baseMaterial = new THREE.MeshPhongMaterial({ color: 0x606060 });
+  pos.set(ropePos.x, 0.1, ropePos.z - armLength);
+  quat.set(0, 0, 0, 1);
+  const base = createParalellepiped(1, 0.2, 1, 0, pos, quat, baseMaterial);
+  base.castShadow = true;
+  base.receiveShadow = true;
+  pos.set(ropePos.x, 0.5 * pylonHeight, ropePos.z - armLength);
+  const pylon = createParalellepiped(0.4, pylonHeight, 0.4, 0, pos, quat, baseMaterial);
+  pylon.castShadow = true;
+  pylon.receiveShadow = true;
+  pos.set(ropePos.x, pylonHeight + 0.2, ropePos.z - 0.5 * armLength);
+  const arm = createParalellepiped(0.4, 0.4, armLength + 0.4, armMass, pos, quat, baseMaterial);
+  arm.castShadow = true;
+  arm.receiveShadow = true;
+
+  // Glue the rope extremes to the ball and the arm
+  const influence = 1;
+  ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
+  ropeSoftBody.appendAnchor(ropeNumSegments, arm.userData.physicsBody, true, influence);
+
+  // Hinge constraint to move the arm
+  const pivotA = new Ammo.btVector3(0, pylonHeight * 0.5, 0);
+  const pivotB = new Ammo.btVector3(0, - 0.2, - armLength * 0.5);
+  const axis = new Ammo.btVector3(0, 1, 0);
+  hinge = new Ammo.btHingeConstraint(pylon.userData.physicsBody, arm.userData.physicsBody, pivotA, pivotB, axis, axis, true);
+  physicsWorld.addConstraint(hinge, true);
 }
+
+function createParalellepiped(sx, sy, sz, mass, pos, quat, material) {
+  const threeObject = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz, 1, 1, 1), material);
+  const shape = new Ammo.btBoxShape(new Ammo.btVector3(sx * 0.5, sy * 0.5, sz * 0.5));
+  shape.setMargin(margin);
+
+  createRigidBody(threeObject, shape, mass, pos, quat);
+
+  return threeObject;
+}
+
 
 function initInput() {
   // create new raycaster to track position of mouse
@@ -198,6 +284,71 @@ function createRigidBody(threeObject, physicsShape, mass, pos, quat) {
 
 }
 
+function animate() {
+  requestAnimationFrame(animate);
+
+  render();
+  stats.update();
+}
+
+function render() {
+
+  const deltaTime = clock.getDelta();
+
+  updatePhysics(deltaTime);
+
+  renderer.render(scene, camera);
+
+}
+
+function updatePhysics(deltaTime) {
+
+  // Hinge control
+  hinge.enableAngularMotor(true, 1.5 * armMovement, 50);
+
+  // Step world
+  physicsWorld.stepSimulation(deltaTime, 10);
+
+  // Update rope
+  const softBody = rope.userData.physicsBody;
+  const ropePositions = rope.geometry.attributes.position.array;
+  const numVerts = ropePositions.length / 3;
+  const nodes = softBody.get_m_nodes();
+  let indexFloat = 0;
+
+  for (let i = 0; i < numVerts; i++) {
+
+    const node = nodes.at(i);
+    const nodePos = node.get_m_x();
+    ropePositions[indexFloat++] = nodePos.x();
+    ropePositions[indexFloat++] = nodePos.y();
+    ropePositions[indexFloat++] = nodePos.z();
+
+  }
+
+  rope.geometry.attributes.position.needsUpdate = true;
+
+  // Update rigid bodies
+  for (let i = 0, il = rigidBodies.length; i < il; i++) {
+
+    const objThree = rigidBodies[i];
+    const objPhys = objThree.userData.physicsBody;
+    const ms = objPhys.getMotionState();
+    if (ms) {
+
+      ms.getWorldTransform(transformAux1);
+      const p = transformAux1.getOrigin();
+      const q = transformAux1.getRotation();
+      objThree.position.set(p.x(), p.y(), p.z());
+      objThree.quaternion.set(q.x(), q.y(), q.z(), q.w());
+
+    }
+
+  }
+
+}
+
+
 // If click on cube, drag cube, otherwise change view
 function onDocumentMouseDown(event) {
   mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
@@ -254,7 +405,7 @@ var MyUpdateLoop = function () {
   requestAnimationFrame(MyUpdateLoop);
 };
 
-requestAnimationFrame(MyUpdateLoop);
+// requestAnimationFrame(MyUpdateLoop);
 
 //keyboard functions, change parameters values
 function handleKeyDown(event) {
