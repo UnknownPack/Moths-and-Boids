@@ -73,7 +73,7 @@ function initGraphics() {
   //                 right  click to pan
   // add the new control and link to the current camera to transform its position
 
-  controls = new OrbitControls(camera, renderer.domElement);
+  // controls = new OrbitControls(camera, renderer.domElement);
 }
 
 function initPhysics() {
@@ -94,6 +94,7 @@ function initPhysics() {
 }
 
 function createObjects() {
+
   // ENVIRONMENT
   // Generates the environment
   var environment = new EnvironmentGenerator(scene);
@@ -106,18 +107,18 @@ function createObjects() {
   //environment.loadOBJEnvironmentModel(filepath2);
 
   // LIGHTBULB
-  const pos = new THREE.Vector3();
-  const quat = new THREE.Quaternion();
   const bulbMass = 1.2;
   const bulbRadius = 0.6;
+  const pos = new THREE.Vector3(0,0,bulbRadius);
+  const quat = new THREE.Quaternion();
   // TODO change to light model
   // creates a sphere as a temporary reference for light bulb interaction 
   const lightbulb_geometry = new THREE.SphereGeometry(bulbRadius);
   const lightbulb_material = new THREE.MeshPhongMaterial({ color: 0xfddc5c, transparent: true });
   const lightbulb = new THREE.Mesh(lightbulb_geometry, lightbulb_material);
   lightbulb.name = "lightbulb";
-  lightbulb.position.y = 1;
-  lightbulb.position.z = 3;
+  lightbulb.position.y = pos.y;
+  lightbulb.position.z = pos.z;
   const bulbShape = new Ammo.btSphereShape(bulbRadius);
   bulbShape.setMargin(margin);
   createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
@@ -135,7 +136,7 @@ function createObjects() {
   const ropeLength = 4;
   const ropeMass = 3;
   const ropePos = lightbulb.position;
-  ropePos.y += bulbRadius;
+  ropePos.y = bulbRadius -1;
 
   const segmentLength = ropeLength / ropeNumSegments;
   const ropeGeometry = new THREE.BufferGeometry();
@@ -163,10 +164,24 @@ function createObjects() {
   rope.receiveShadow = true;
   rope.add(lightbulb)
 
+
+  // LIGHT BASE
+  const baseMass = 0;
+  const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xffddff });
+  //pos.set(ropePos.x, , ropePos.z - 0.5 * 1);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2), baseMaterial);
+  base.position.x = lightbulb.position.x;
+  base.position.y = 5;
+  base.position.z = 2;
+  //const base = createParalellepiped(0.4, 0.4, 1, baseMass, pos, quat, baseMaterial);
+  base.castShadow = true;
+  base.receiveShadow = true;
+  base.add(rope);
+
   // Makes rope draggable
   const interactionHandler = new InteractionHandler(camera, renderer);
-  interactionHandler.addDragObject(rope);
-  scene.add(rope);
+  interactionHandler.addDragObject(base);
+  scene.add(base)
 
   // Rope physic object
   const softBodyHelpers = new Ammo.btSoftBodyHelpers();
@@ -183,36 +198,17 @@ function createObjects() {
   // Disable deactivation
   ropeSoftBody.setActivationState(4);
 
-  // The base
-  const armMass = 2;
-  const armLength = 3;
-  const pylonHeight = ropePos.y + ropeLength;
-  const baseMaterial = new THREE.MeshPhongMaterial({ color: 0x606060 });
-  pos.set(ropePos.x, 0.1, ropePos.z - armLength);
-  quat.set(0, 0, 0, 1);
-  const base = createParalellepiped(1, 0.2, 1, 0, pos, quat, baseMaterial);
-  base.castShadow = true;
-  base.receiveShadow = true;
-  pos.set(ropePos.x, 0.5 * pylonHeight, ropePos.z - armLength);
-  const pylon = createParalellepiped(0.4, pylonHeight, 0.4, 0, pos, quat, baseMaterial);
-  pylon.castShadow = true;
-  pylon.receiveShadow = true;
-  pos.set(ropePos.x, pylonHeight + 0.2, ropePos.z - 0.5 * armLength);
-  const arm = createParalellepiped(0.4, 0.4, armLength + 0.4, armMass, pos, quat, baseMaterial);
-  arm.castShadow = true;
-  arm.receiveShadow = true;
-
   // Glue the rope extremes to the ball and the arm
   const influence = 1;
   ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
-  ropeSoftBody.appendAnchor(ropeNumSegments, arm.userData.physicsBody, true, influence);
+  ropeSoftBody.appendAnchor(ropeNumSegments, base.userData.physicsBody, true, influence);
 
   // Hinge constraint to move the arm
-  const pivotA = new Ammo.btVector3(0, pylonHeight * 0.5, 0);
-  const pivotB = new Ammo.btVector3(0, - 0.2, - armLength * 0.5);
-  const axis = new Ammo.btVector3(0, 1, 0);
-  hinge = new Ammo.btHingeConstraint(pylon.userData.physicsBody, arm.userData.physicsBody, pivotA, pivotB, axis, axis, true);
-  physicsWorld.addConstraint(hinge, true);
+  // const pivotA = new Ammo.btVector3(0, ropePos.y * 0.5, 0);
+  //const pivotB = new Ammo.btVector3(0, - 0.2, - armLength * 0.5);
+  // const axis = new Ammo.btVector3(0, 1, 0);
+  // hinge = new Ammo.btHingeConstraint(pylon.userData.physicsBody, arm.userData.physicsBody, pivotA, pivotB, axis, axis, true);
+  // physicsWorld.addConstraint(hinge, true);
 }
 
 function createParalellepiped(sx, sy, sz, mass, pos, quat, material) {
@@ -289,7 +285,7 @@ function animate() {
   requestAnimationFrame(animate);
 
   render();
-  stats.update();
+  // stats.update();
 }
 
 function render() {
@@ -305,7 +301,7 @@ function render() {
 function updatePhysics(deltaTime) {
 
   // Hinge control
-  hinge.enableAngularMotor(true, 1.5 * armMovement, 50);
+  // hinge.enableAngularMotor(true, 1.5 * armMovement, 50);
 
   // Step world
   physicsWorld.stepSimulation(deltaTime, 10);
