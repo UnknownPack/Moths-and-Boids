@@ -90,5 +90,3 @@ import { spatialGrid } from './SpatialPartition.js';
   }
 
  
-
- 
