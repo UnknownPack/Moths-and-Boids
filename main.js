@@ -3,6 +3,7 @@ import { OrbitControls } from './build/controls/OrbitControls.js';
 import { EnvironmentGenerator } from './EnvironmentGenerator.js';
 import { InteractionHandler } from './InteractionHandler.js';
 import { BoidManager } from './BoidManager.js';
+import { GLTFLoader } from './build/loaders/GLTFLoader.js';
 
 
 var scene = new THREE.Scene( );
@@ -38,7 +39,13 @@ var filepath3 = 'models/Campfire.obj';
 //environment.loadOBJEnvironmentModel(filepath2);
 
 // TODO change to light source
-
+const loader = new GLTFLoader().setPath('models/ceilling_lamp/');
+loader.load('scene.gltf', (gltf) => {
+  const mesh = gltf.scene;
+  mesh.position.set(0, 5, 3);
+  mesh.scale.set(0.2, 0.2, 0.2);
+  scene.add(mesh);
+} );
 // creates a cube as a temporary reference for interaction 
 const cube_geometry = new THREE.BoxGeometry();
 const cube_material = new THREE.MeshPhongMaterial({ color: 0xff0000, transparent: true });
