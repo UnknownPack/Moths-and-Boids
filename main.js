@@ -102,6 +102,13 @@ function createObjects() {
   const pos = new THREE.Vector3(0, 0, bulbRadius);
   const quat = new THREE.Quaternion();
   // TODO change to light model
+  const loader = new GLTFLoader().setPath('models/ceilling_lamp/');
+    loader.load('scene.gltf', (gltf) => {
+    const mesh = gltf.scene;
+    mesh.position.set(0, 3, 3);
+    mesh.scale.set(0.2, 0.2, 0.2);
+    scene.add(mesh);
+  } );
   // creates a sphere as a temporary reference for light bulb interaction 
   const lightbulb_geometry = new THREE.SphereGeometry(bulbRadius);
   const lightbulb_material = new THREE.MeshPhongMaterial({ color: 0xfddc5c, transparent: true });
