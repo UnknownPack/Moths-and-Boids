@@ -3,6 +3,7 @@ import { OrbitControls } from './build/controls/OrbitControls.js';
 import { EnvironmentGenerator } from './EnvironmentGenerator.js';
 import { InteractionHandler } from './InteractionHandler.js';
 import { BoidManager } from './BoidManager.js';
+import { GLTFLoader } from './build/loaders/GLTFLoader.js';
 
 // GRAPHICS CONST
 let camera, controls, renderer;
@@ -41,7 +42,6 @@ function init() {
   initPhysics();
   createObjects();
   initInput();
-
 }
 
 function initGraphics() {
