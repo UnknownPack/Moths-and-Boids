@@ -5,168 +5,415 @@ import { InteractionHandler } from './InteractionHandler.js';
 import { BoidManager } from './BoidManager.js';
 import { GLTFLoader } from './build/loaders/GLTFLoader.js';
 
+// GRAPHICS CONST
+let camera, controls, renderer;
+let scene = new THREE.Scene();
+// PHYSICS CONST
+const gravityConstant = - 9.8;
+let collisionConfiguration;
+let dispatcher;
+let broadphase;
+let solver;
+let softBodySolver;
+let physicsWorld;
 
-var scene = new THREE.Scene( );
-var ratio = window.innerWidth/window.innerHeight;
-//create the perspective camera
-//for parameters see https://threejs.org/docs/#api/cameras/PerspectiveCamera
-var camera = new THREE.PerspectiveCamera(45,ratio,0.1,1000);
-camera.position.set(0,0,15);
-camera.lookAt(0,0,1);
+const margin = 0.05;
+const rigidBodies = [];
+let hinge;
+let rope;
+let transformAux1;
 
-// Creates lightning environment
-var ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-scene.add(ambientLight);
-var directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.position.set(0,30,0);
-scene.add(directionalLight);
+let armMovement = 0;
 
-// Creates the renderer
-var renderer = new THREE.WebGLRenderer( );
-renderer.setSize(window.innerWidth,window.innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-document.body.appendChild(renderer.domElement );
+// Inits physics environment
+Ammo().then(function (AmmoLib) {
 
-// Generates the environment
-var environment = new EnvironmentGenerator(scene);
-//environment.generateGround(100,100);
+  Ammo = AmmoLib;
 
-var filepath = 'models/american_style_house/scene.gltf';
-var filepath2 = 'models/forest_house/scene.gltf';
-environment.loadGLTFEnvironmentModel(filepath);
-var filepath3 = 'models/Campfire.obj';
-//environment.loadOBJEnvironmentModel(filepath2);
+  init();
+  animate();
+  //requestAnimationFrame(MyUpdateLoop);
 
-// TODO change to light source
-const loader = new GLTFLoader().setPath('models/ceilling_lamp/');
-loader.load('scene.gltf', (gltf) => {
-  const mesh = gltf.scene;
-  mesh.position.set(0, 5, 3);
-  mesh.scale.set(0.2, 0.2, 0.2);
-  scene.add(mesh);
-} );
-// creates a cube as a temporary reference for interaction 
-const cube_geometry = new THREE.BoxGeometry();
-const cube_material = new THREE.MeshPhongMaterial({ color: 0xff0000, transparent: true });
-const cube = new THREE.Mesh(cube_geometry, cube_material);
-cube.name = "cube";
-cube.position.y = 3;
-cube.position.z = 3;
+});
 
-// Makes cube draggable
-const interactionHandler = new InteractionHandler(camera, renderer);
-interactionHandler.addDragObject(cube);
-scene.add(cube);
+function init() {
 
-var mouse = new THREE.Vector2;
-var raycaster = new THREE.Raycaster();
-var selectedObj = false;
-// If click on cube, drag cube, otherwise change view
-function onDocumentMouseDown( event ) {
-  mouse.x = ( event.clientX / renderer.domElement.clientWidth ) * 2 - 1;
-  mouse.y = - ( event.clientY / renderer.domElement.clientHeight ) * 2 + 1;
-  raycaster.setFromCamera( mouse, camera );
-
-  var intersects = raycaster.intersectObjects( scene.children, false );
-
-  if ( intersects.length > 0 && (intersects[ 0 ].object.name=="cube")) {
-        selectedObj = true;
-        controls.enabled = false;
-  }
+  initGraphics();
+  initPhysics();
+  createObjects();
+  initInput();
 }
-function onDocumentMouseUp( event ) {
-  if(selectedObj){
-    selectedObj = false;
-    controls.enabled = true;
-  }
+
+function initGraphics() {
+  var ratio = window.innerWidth / window.innerHeight;
+  //create the perspective camera
+  camera = new THREE.PerspectiveCamera(45, ratio, 0.1, 1000);
+  camera.position.set(0, 0, 15);
+  camera.lookAt(0, 0, 1);
+
+  // Creates lightning environment
+  var ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(ambientLight);
+  var directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  directionalLight.position.set(0, 30, 0);
+  scene.add(directionalLight);
+
+  // Creates the renderer
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  document.body.appendChild(renderer.domElement);
 }
-document.addEventListener( 'mousedown', onDocumentMouseDown, false );
-document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+
+function initPhysics() {
+
+  // Physics configuration
+
+  collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
+  dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
+  broadphase = new Ammo.btDbvtBroadphase();
+  solver = new Ammo.btSequentialImpulseConstraintSolver();
+  softBodySolver = new Ammo.btDefaultSoftBodySolver();
+  physicsWorld = new Ammo.btSoftRigidDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration, softBodySolver);
+  physicsWorld.setGravity(new Ammo.btVector3(0, gravityConstant, 0));
+  physicsWorld.getWorldInfo().set_m_gravity(new Ammo.btVector3(0, gravityConstant, 0));
+
+  transformAux1 = new Ammo.btTransform();
+
+}
+
+function createObjects() {
+
+  // ENVIRONMENT
+  // Generates the environment
+  var environment = new EnvironmentGenerator(scene);
+  // environment.generateGround(100,100);
+
+  var filepath = 'models/american_style_house/scene.gltf';
+  var filepath2 = 'models/forest_house/scene.gltf';
+  environment.loadGLTFEnvironmentModel(filepath);
+  var filepath3 = 'models/Campfire.obj';
+  //environment.loadOBJEnvironmentModel(filepath2);
+
+  // LIGHTBULB
+  const bulbMass = 10;
+  const bulbRadius = 0.6;
+  const pos = new THREE.Vector3(0, 0, bulbRadius);
+  const quat = new THREE.Quaternion();
+  // TODO change to light model
+  // creates a sphere as a temporary reference for light bulb interaction 
+  const lightbulb_geometry = new THREE.SphereGeometry(bulbRadius);
+  const lightbulb_material = new THREE.MeshPhongMaterial({ color: 0xfddc5c, transparent: true });
+  const lightbulb = new THREE.Mesh(lightbulb_geometry, lightbulb_material);
+  lightbulb.name = "lightbulb";
+  lightbulb.position.y = pos.y;
+  lightbulb.position.z = pos.z;
+  const bulbShape = new Ammo.btSphereShape(bulbRadius);
+  bulbShape.setMargin(margin);
+  createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
+  lightbulb.userData.physicsBody.setFriction(0.5);
+
+  // creates the pointlight of the swinging light
+  const light = new THREE.PointLight(0xfddc5c, 1, 100);
+  lightbulb.add(light);
+
+  // ROPE
+  // creates rope graphic object
+  const ropeNumSegments = 10;
+  const ropeLength = 4;
+  const ropeMass = 5;
+  const ropePos = lightbulb.position;
+  ropePos.y = bulbRadius - 1;
+
+  const segmentLength = ropeLength / ropeNumSegments;
+  const ropeGeometry = new THREE.BufferGeometry();
+  const ropeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+  const ropePositions = [];
+  const ropeIndices = [];
+
+  for (let i = 0; i < ropeNumSegments + 1; i++) {
+
+    ropePositions.push(ropePos.x, ropePos.y + i * segmentLength, ropePos.z);
+
+  }
+
+  for (let i = 0; i < ropeNumSegments; i++) {
+
+    ropeIndices.push(i, i + 1);
+
+  }
+
+  ropeGeometry.setIndex(new THREE.BufferAttribute(new Uint16Array(ropeIndices), 1));
+  ropeGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ropePositions), 3));
+  ropeGeometry.computeBoundingSphere();
+  rope = new THREE.LineSegments(ropeGeometry, ropeMaterial);
+  rope.castShadow = true;
+  rope.receiveShadow = true;
+  rope.add(lightbulb)
 
 
+  // LIGHT BASE
+  let baseMass = 0;
+  const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xffddff });
+  const base = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0,2), baseMaterial);
+  base.position.x = lightbulb.position.x;
+  base.position.y = 4;
+  base.position.z = 3;
+  base.castShadow = true;
+  base.receiveShadow = true;
+  base.add(rope);
+  const baseShape = new Ammo.btBoxShape(bulbRadius);
+  baseShape.setMargin(margin);
+  createRigidBody(base, baseShape, baseMass, base.position, quat);
+  base.userData.physicsBody.setFriction(0.5);
 
-function ClearScene()
-{
+  // Makes base draggable
+  const interactionHandler = new InteractionHandler(camera, renderer);
+  interactionHandler.addDragObject(base);
+  scene.add(base)
+
+  // Rope physic object
+  const softBodyHelpers = new Ammo.btSoftBodyHelpers();
+  const ropeStart = new Ammo.btVector3(ropePos.x, ropePos.y, ropePos.z);
+  const ropeEnd = new Ammo.btVector3(ropePos.x, ropePos.y + ropeLength, ropePos.z);
+  const ropeSoftBody = softBodyHelpers.CreateRope(physicsWorld.getWorldInfo(), ropeStart, ropeEnd, ropeNumSegments - 1, 0);
+  const sbConfig = ropeSoftBody.get_m_cfg();
+  sbConfig.set_viterations(10);
+  sbConfig.set_piterations(10);
+  ropeSoftBody.setTotalMass(ropeMass, false);
+  Ammo.castObject(ropeSoftBody, Ammo.btCollisionObject).getCollisionShape().setMargin(margin * 3);
+  physicsWorld.addSoftBody(ropeSoftBody, 1, - 1);
+  rope.userData.physicsBody = ropeSoftBody;
+  // Disable deactivation
+  ropeSoftBody.setActivationState(4);
+
+  // Glue the rope extremes to the ball and the arm
+  const influence = 1;
+  ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
+  ropeSoftBody.appendAnchor(10, ropeNumSegments, base.userData.physicsBody, true, influence);
+
+  // Hinge constraint to move the arm
+  // const pivotA = new Ammo.btVector3(0, ropePos.y * 0.5, 0);
+  //const pivotB = new Ammo.btVector3(0, - 0.2, - armLength * 0.5);
+  // const axis = new Ammo.btVector3(0, 1, 0);
+  // hinge = new Ammo.btHingeConstraint(pylon.userData.physicsBody, arm.userData.physicsBody, pivotA, pivotB, axis, axis, true);
+  // physicsWorld.addConstraint(hinge, true);
+}
+
+function createParalellepiped(sx, sy, sz, mass, pos, quat, material) {
+  const threeObject = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz, 1, 1, 1), material);
+  const shape = new Ammo.btBoxShape(new Ammo.btVector3(sx * 0.5, sy * 0.5, sz * 0.5));
+  shape.setMargin(margin);
+
+  createRigidBody(threeObject, shape, mass, pos, quat);
+
+  return threeObject;
+}
+
+
+function initInput() {
+  // create new raycaster to track position of mouse
+  var mouse = new THREE.Vector2;
+  var raycaster = new THREE.Raycaster();
+  var selectedObj = false;
+}
+
+function ClearScene() {
   for (let i = scene.children.length - 1; i >= 0; i--)
-    if(scene.children[i].type == "Mesh")
-        scene.remove(scene.children[i]);
+    if (scene.children[i].type == "Mesh")
+      scene.remove(scene.children[i]);
 }
 
-function CreateTransfMatrices()
-{
+function CreateTransfMatrices() {
 }
 
-function CreateScene()
-{
+function CreateScene() {
   CreateTransfMatrices();
 
   //create a xyz axis
-  const axesHelper = new THREE.AxesHelper( 5 );
-  scene.add( axesHelper );
+  const axesHelper = new THREE.AxesHelper(5);
+  if (scene != undefined) {
+    scene.add(axesHelper);
+  } else {
+    init();
+  }
 }
+
+// create a rigidbody for phaysics application
+function createRigidBody(threeObject, physicsShape, mass, pos, quat) {
+
+  threeObject.position.copy(pos);
+  threeObject.quaternion.copy(quat);
+
+  const transform = new Ammo.btTransform();
+  transform.setIdentity();
+  transform.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
+  transform.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w));
+  const motionState = new Ammo.btDefaultMotionState(transform);
+
+  const localInertia = new Ammo.btVector3(0, 0, 0);
+  physicsShape.calculateLocalInertia(mass, localInertia);
+
+  const rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, physicsShape, localInertia);
+  const body = new Ammo.btRigidBody(rbInfo);
+
+  threeObject.userData.physicsBody = body;
+
+  scene.add(threeObject);
+
+  if (mass > 0) {
+
+    rigidBodies.push(threeObject);
+
+    // Disable deactivation
+    body.setActivationState(4);
+
+  }
+
+  physicsWorld.addRigidBody(body);
+
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  if (scene != undefined) {
+    requestAnimationFrame(MyUpdateLoop);
+  }
+}
+
+function updatePhysics(deltaTime) {
+
+  // Step world
+  physicsWorld.stepSimulation(deltaTime, 10);
+
+  // Update rope
+  const softBody = rope.userData.physicsBody;
+  const ropePositions = rope.geometry.attributes.position.array;
+  const numVerts = ropePositions.length / 3;
+  const nodes = softBody.get_m_nodes();
+  let indexFloat = 0;
+
+  for (let i = 0; i < numVerts; i++) {
+
+    const node = nodes.at(i);
+    const nodePos = node.get_m_x();
+    ropePositions[indexFloat++] = nodePos.x();
+    ropePositions[indexFloat++] = nodePos.y();
+    ropePositions[indexFloat++] = nodePos.z();
+
+  }
+
+  rope.geometry.attributes.position.needsUpdate = true;
+
+  // Update rigid bodies
+  for (let i = 0, il = rigidBodies.length; i < il; i++) {
+
+    const objThree = rigidBodies[i];
+    const objPhys = objThree.userData.physicsBody;
+    const ms = objPhys.getMotionState();
+    if (ms) {
+
+      ms.getWorldTransform(transformAux1);
+      const p = transformAux1.getOrigin();
+      const q = transformAux1.getRotation();
+      objThree.position.set(p.x(), p.y(), p.z());
+      objThree.quaternion.set(q.x(), q.y(), q.z(), q.w());
+
+    }
+
+  }
+
+}
+
+//////////////
+  // ORBIT CONTROLS //
+  //////////////
+
+  // move mouse and: left   click to rotate,
+  //                 middle click to zoom,
+  //                 right  click to pan
+  // add the new control and link to the current camera to transform its position
+
+//   controls = new OrbitControls(camera, renderer.domElement);
+
+// // If click on cube, drag cube, otherwise change view
+// function onDocumentMouseDown(event) {
+//   mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+//   mouse.y = - (event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+//   raycaster.setFromCamera(mouse, camera);
+
+//   var intersects = raycaster.intersectObjects(scene.children, false);
+
+//   if (intersects.length > 0 && (intersects[0].object.name == "lightbulb")) {
+//     selectedObj = true;
+//     controls.enabled = false;
+//   }
+// }
+// function onDocumentMouseUp(event) {
+//   if (selectedObj) {
+//     selectedObj = false;
+//     controls.enabled = true;
+//   }
+// }
+// document.addEventListener('mousedown', onDocumentMouseDown, false);
+// document.addEventListener('mouseup', onDocumentMouseUp, false);
 
 //////////////
 //  Boids   //
 //////////////
 
-  // Create boid manager
-  //these paramters can be changed
-  const numberOfBoids = 50;
-  const obstacles = [];
-  const velocity = 0.1;
-  const maxSpeed = 0.1;
-  const maxForce = 0.1;
-  const searchRadius = 3;
-  // change lightPoint Vector3 to light
-  const lightPoint = new THREE.Vector3(0, 15, 0);
-  const lightAttraction = 1;
-  const spawnRadius = 10;
-  const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, spawnRadius, scene);
-
-//////////////
-// CONTROLS //
-//////////////
-
-// move mouse and: left   click to rotate,
-//                 middle click to zoom,
-//                 right  click to pan
-// add the new control and link to the current camera to transform its position
-
-var controls = new OrbitControls( camera, renderer.domElement );
+// Create boid manager
+//these paramters can be changed
+const numberOfBoids = 1000;
+const obstacles = [];
+const velocity = 0.1;
+const maxSpeed = 0.1;
+const maxForce = 0.1;
+const searchRadius = 3;
+// change lightPoint Vector3 to lightbulb
+const lightPoint = new THREE.Vector3(0, 15, 0);
+const lightAttraction = 100;
+const spawnRadius = 10;
+const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene);
 
 //final update loop
-var MyUpdateLoop = function ( )
-{ 
-CreateScene();
-renderer.render(scene,camera);
+var clock = new THREE.Clock();
+var deltaTime;
+var MyUpdateLoop = function () {
+  deltaTime = clock.getDelta();
+  CreateScene();
+  updatePhysics(deltaTime);
 
-boidManager.updateBoids();
-//controls.update(); 
+  renderer.render(scene, camera);
 
-requestAnimationFrame(MyUpdateLoop);
+  //insert in method bellow, another method that returns the position of the light
+  boidManager.setLightPoint(lightPoint);
+  boidManager.updateBoids(deltaTime);
+
+  // - Orbit Controls - 
+  //controls.update();
+
+  //requestAnimationFrame(MyUpdateLoop);
 };
 
-requestAnimationFrame(MyUpdateLoop);
+//requestAnimationFrame(MyUpdateLoop);
 
 //keyboard functions, change parameters values
 function handleKeyDown(event) {
-  if (event.keyCode === 39)
-  {
+  if (event.keyCode === 39) {
     ClearScene();
     n++;
     CreateScene();
   }
-  if (event.keyCode === 37)
-  {
+  if (event.keyCode === 37) {
     ClearScene();
     n--;
-    n=Math.max(n,5);
+    n = Math.max(n, 5);
     CreateScene();
   }
-  if (event.keyCode === 32)
-  {
-    reverse=!reverse;
+  if (event.keyCode === 32) {
+    reverse = !reverse;
   }
 }
 
@@ -174,15 +421,14 @@ function handleKeyDown(event) {
 window.addEventListener('keydown', handleKeyDown, false);
 
 //this fucntion is called when the window is resized
-var MyResize = function ( )
-{
-var width = window.innerWidth;
-var height = window.innerHeight;
-renderer.setSize(width,height);
-camera.aspect = width/height;
-camera.updateProjectionMatrix();
-renderer.render(scene,camera);
+var MyResize = function () {
+  var width = window.innerWidth;
+  var height = window.innerHeight;
+  renderer.setSize(width, height);
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
 };
 
 //link the resize of the window to the update of the camera
-window.addEventListener( 'resize', MyResize);
+window.addEventListener('resize', MyResize);
