@@ -364,15 +364,14 @@ function updatePhysics(deltaTime) {
 //   }
 // }
 // document.addEventListener('mousedown', onDocumentMouseDown, false);
-// document.addEventListener('mouseup', onDocumentMouseUp, false);
-
+// document.addEventListener('mouseup', onDocumentMouseUp, false); 
 //////////////
 //  Boids   //
 //////////////
 
 // Create boid manager
 //these paramters can be changed
-const numberOfBoids = 1000;
+const numberOfBoids = 200;
 const obstacles = [];
 const velocity = 0.1;
 const maxSpeed = 0.1;
