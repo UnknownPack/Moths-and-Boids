@@ -4,6 +4,7 @@ import { EnvironmentGenerator } from './EnvironmentGenerator.js';
 import { InteractionHandler } from './InteractionHandler.js';
 import { BoidManager } from './BoidManager.js';
 import { GLTFLoader } from './build/loaders/GLTFLoader.js';
+import { Sky } from './build/environment/Sky.js';
 
 // GRAPHICS CONST
 let camera, controls, renderer;
@@ -42,6 +43,7 @@ function init() {
   initPhysics();
   createObjects();
   initInput();
+  initSky();
 }
 
 function initGraphics() {
@@ -63,9 +65,20 @@ function initGraphics() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  //for sky 
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+	renderer.toneMappingExposure = 0.5;
+
   document.body.appendChild(renderer.domElement);
 
+  //////////////
+  // ORBIT CONTROLS //
+  //////////////
 
+  // move mouse and: left   click to rotate,
+  //                 middle click to zoom,
+  //                 right  click to pan
+  // add the new control and link to the current camera to transform its position
   controls = new OrbitControls(camera, renderer.domElement);
 }
 
@@ -85,13 +98,34 @@ function initPhysics() {
   transformAux1 = new Ammo.btTransform();
 
 }
+let sky, sun;
+function initSky(){
+  sky = new Sky();
+	sky.scale.setScalar( 450000 );
+	scene.add( sky );
+  sun = new THREE.Vector3();
+
+  let elevation = 16.6; 
+  let azimuth = 150; //rotation
+
+  const uniforms = sky.material.uniforms;
+  //Sun position
+  const phi = THREE.MathUtils.degToRad( 90 - elevation );
+	const theta = THREE.MathUtils.degToRad( azimuth );
+  sun.setFromSphericalCoords( 1, phi, theta );
+  uniforms[ 'sunPosition' ].value.copy( sun );
+  renderer.toneMappingExposure = 0.2;
+  uniforms[ 'turbidity' ].value = 0;
+  uniforms[ 'rayleigh' ].value = 0.147;
+	uniforms[ 'mieCoefficient' ].value = 0.023;
+	uniforms[ 'mieDirectionalG' ].value = 0.7;
+
+}
 
 function createObjects() {
 
   // ENVIRONMENT
-  // Generates the environment
   var environment = new EnvironmentGenerator(scene);
-  // environment.generateGround(100,100);
   var filepath = 'models/american_style_house/scene.gltf';
   var filepath2 = 'models/forest_house/scene.gltf';
   environment.loadGLTFEnvironmentModel(filepath);
@@ -335,18 +369,6 @@ function updatePhysics(deltaTime) {
 
 }
 
-//////////////
-  // ORBIT CONTROLS //
-  //////////////
-
-  // move mouse and: left   click to rotate,
-  //                 middle click to zoom,
-  //                 right  click to pan
-  // add the new control and link to the current camera to transform its position
-
-//orbitcontrols = new OrbitControls(camera, renderer.domElement);
-
-
 
 //////////////
 //  Boids   //
@@ -354,7 +376,7 @@ function updatePhysics(deltaTime) {
 
 // Create boid manager
 //these paramters can be changed
-const numberOfBoids = 200;
+const numberOfBoids = 0;
 const obstacles = [];
 const velocity = 0.1;
 const maxSpeed = 0.1;

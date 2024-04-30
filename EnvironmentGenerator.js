@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { PLYLoader } from './build/loaders/PLYLoader.js';
 import { GLTFLoader} from './build/loaders/GLTFLoader.js';
 import { OBJLoader } from './build/loaders/OBJLoader.js';
+import { Sky } from './build/environment/Sky.js';
+//import { ShaderChunk} from './build/shaders/ShaderChunk.js';
 
 export class EnvironmentGenerator{
     constructor(scene) {
@@ -20,8 +22,12 @@ export class EnvironmentGenerator{
         ground.position.y = -1;
         this.scene.add(ground);
     }
-    generateEnvironment(){
-    }
+/*
+    generateSky(scene){       
+        let sky = new Sky();
+        sky.scale.setScalar( 450000 );
+        this.scene.add(sky);
+    }*/
 
     loadOBJEnvironmentModel(filePath){
         var loader = new OBJLoader();
