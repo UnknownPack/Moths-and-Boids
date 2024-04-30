@@ -64,6 +64,9 @@ function initGraphics() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
+
+
+  controls = new OrbitControls(camera, renderer.domElement);
 }
 
 function initPhysics() {
@@ -176,7 +179,7 @@ function createObjects() {
   base.userData.physicsBody.setFriction(0.5);
 
   // Makes base draggable
-  const interactionHandler = new InteractionHandler(camera, renderer);
+  const interactionHandler = new InteractionHandler(camera, renderer, controls);
   interactionHandler.addDragObject(base);
   scene.add(base)
 
@@ -342,29 +345,10 @@ function updatePhysics(deltaTime) {
   //                 right  click to pan
   // add the new control and link to the current camera to transform its position
 
-//   controls = new OrbitControls(camera, renderer.domElement);
+//orbitcontrols = new OrbitControls(camera, renderer.domElement);
 
-// // If click on cube, drag cube, otherwise change view
-// function onDocumentMouseDown(event) {
-//   mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
-//   mouse.y = - (event.clientY / renderer.domElement.clientHeight) * 2 + 1;
-//   raycaster.setFromCamera(mouse, camera);
 
-//   var intersects = raycaster.intersectObjects(scene.children, false);
 
-//   if (intersects.length > 0 && (intersects[0].object.name == "lightbulb")) {
-//     selectedObj = true;
-//     controls.enabled = false;
-//   }
-// }
-// function onDocumentMouseUp(event) {
-//   if (selectedObj) {
-//     selectedObj = false;
-//     controls.enabled = true;
-//   }
-// }
-// document.addEventListener('mousedown', onDocumentMouseDown, false);
-// document.addEventListener('mouseup', onDocumentMouseUp, false); 
 //////////////
 //  Boids   //
 //////////////
