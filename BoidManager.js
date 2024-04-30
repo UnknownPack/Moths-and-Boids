@@ -47,9 +47,6 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
                 console.error('An error happened during OBJ loading:', error);
             });
         });
-
-         
-
       }
 
       makeBoids(){

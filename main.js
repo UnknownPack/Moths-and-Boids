@@ -48,7 +48,7 @@ function initGraphics() {
   var ratio = window.innerWidth / window.innerHeight;
   //create the perspective camera
   camera = new THREE.PerspectiveCamera(45, ratio, 0.1, 1000);
-  camera.position.set(0, 0, 15);
+  camera.position.set(0, 0, 100);
   camera.lookAt(0, 0, 1);
 
   // Creates lightning environment
@@ -92,7 +92,6 @@ function createObjects() {
   // Generates the environment
   var environment = new EnvironmentGenerator(scene);
   // environment.generateGround(100,100);
-
   var filepath = 'models/american_style_house/scene.gltf';
   var filepath2 = 'models/forest_house/scene.gltf';
   environment.loadGLTFEnvironmentModel(filepath);

@@ -53,8 +53,8 @@ export class EnvironmentGenerator{
         var rot = new THREE.Matrix4();
         var combined = new THREE.Matrix4();
 
-        sca.makeScale(10/size.length(),10/size.length(),10/size.length());
-        tra.makeTranslation (-center.x,-center.y,-center.z);
+        sca.makeScale(150/size.length(),150/size.length(),150/size.length());
+        tra.makeTranslation (-center.x-150,-center.y+80,-center.z);
         if(filePath == 'models/american_style_house/scene.gltf'){
             rot.makeRotationY(270*Math.PI/180);
             combined.multiply(rot);
@@ -65,7 +65,6 @@ export class EnvironmentGenerator{
         combined.multiply(sca);     
         combined.multiply(tra);
         houseMesh.applyMatrix4(combined);
-        
         this.scene.add(houseMesh);
     });
     }
