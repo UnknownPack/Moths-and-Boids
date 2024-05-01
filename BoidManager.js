@@ -22,8 +22,8 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
            
 
         //SPAITIAL PARTION
-        const gridSize = new THREE.Vector3(100, 100, 100); // Dimensions of the grid
-        const cellSize = 10; // Length of each side of a cubic cell
+        const gridSize = new THREE.Vector3(20, 20, 20); // Dimensions of the grid
+        const cellSize = 2; // Length of each side of a cubic cell
         this.grid = new spatialGrid(gridSize, cellSize);
 
         //loading of model and materials
@@ -85,7 +85,7 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
             var avoidanceForce = boid.avoidanceBehaviour(nearbyBoids);
     
             //change value of 10 if you want
-            if(boid.position.distanceTo(this.lightPoint) > 10){
+            if(boid.position.distanceTo(this.lightPoint) > 5){
               boid.applyForce(lightAttractionForce, deltaTime);
             } 
             boid.applyForce(avoidanceForce, deltaTime); 
