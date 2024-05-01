@@ -25,7 +25,7 @@ let transformAux1;
 
 let armMovement = 0;
 
-let lightPoint_position = new THREE.Vector3(0, 15, 0);
+let lightPoint_position = new THREE.Vector3(0, 0, 3);
 
 // Inits physics environment
 Ammo().then(function (AmmoLib) {
@@ -120,7 +120,10 @@ function createObjects() {
   lightbulb.name = "lightbulb";
   lightbulb.position.y = pos.y;
   lightbulb.position.z = pos.z;
-  
+
+  //assign the light's position as the lightPoint that the boids will be attracted to
+  lightPoint_position = lightbulb.position;
+
   const bulbShape = new Ammo.btSphereShape(bulbRadius);
   bulbShape.setMargin(margin);
   createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
@@ -171,8 +174,7 @@ function createObjects() {
   const base = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0,2), baseMaterial);
   base.position.x = lightbulb.position.x;
   base.position.y = 4;
-  base.position.z = 3;
-  lightPoint_position = base.position;
+  base.position.z = 3; 
   base.castShadow = true;
   base.receiveShadow = true;
   base.add(rope);
@@ -364,7 +366,7 @@ const velocity = 0.5;
 const maxSpeed = 0.1;
 const maxForce = 0.1;
 const searchRadius = 2;
-// change lightPoint Vector3 to lightbulb
+// change lightPoint Vector3 to lightbulb 
 const lightPoint = lightPoint_position;
 const lightAttraction = 50;
 const spawnRadius = 10;
@@ -373,9 +375,8 @@ const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed
 //final update loop
 var clock = new THREE.Clock();
 var deltaTime; 
-var MyUpdateLoop = function () {
-
-  console.log(lightPoint_position);
+var MyUpdateLoop = function () { 
+  console.log( lightPoint_position);
   deltaTime = clock.getDelta();
   CreateScene();
   updatePhysics(deltaTime);

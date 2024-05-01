@@ -85,7 +85,7 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
             var avoidanceForce = boid.avoidanceBehaviour(nearbyBoids);
     
             //change value of 10 if you want
-            if(boid.position.distanceTo(this.lightPoint) > 5){
+            if(boid.position.distanceTo(this.lightPoint) > 1){
               boid.applyForce(lightAttractionForce, deltaTime);
             } 
             boid.applyForce(avoidanceForce, deltaTime); 
