@@ -4,6 +4,7 @@ import { EnvironmentGenerator } from './EnvironmentGenerator.js';
 import { InteractionHandler } from './InteractionHandler.js';
 import { BoidManager } from './BoidManager.js';
 import { GLTFLoader } from './build/loaders/GLTFLoader.js';
+import {GPUComputationRenderer} from './build/misc/GPUComputationRenderer.js';
 import { Sky } from './build/environment/Sky.js';
 
 // GRAPHICS CONST
@@ -376,8 +377,44 @@ function updatePhysics(deltaTime) {
 
 
 //////////////
+//GPUCompute//
+//////////////
+/*
+function initComputeRenderer() {
+  const gpuCompute = new GPUComputationRenderer( 1024, 1024, renderer );
+  const dtPosition = gpuCompute.createTexture();
+  const dtVelocity = gpuCompute.createTexture();
+  fillPositionTexture( dtPosition );
+  fillVelocityTexture( dtVelocity );
+
+  velocityVariable = gpuCompute.addVariable( 'textureVelocity', document.getElementById( 'fragmentShaderVelocity' ).textContent, dtVelocity );
+	positionVariable = gpuCompute.addVariable( 'texturePosition', document.getElementById( 'fragmentShaderPosition' ).textContent, dtPosition );
+
+  gpuCompute.setVariableDependencies( velocityVariable, [ positionVariable, velocityVariable ] );
+	gpuCompute.setVariableDependencies( positionVariable, [ positionVariable, velocityVariable ] );
+
+  positionUniforms = positionVariable.material.uniforms;
+  velocityUniforms = velocityVariable.material.uniforms;
+
+  positionUniforms[ 'time' ] = { value: 0.0 };
+  positionUniforms[ 'delta' ] = { value: 0.0 };
+  velocityUniforms[ 'time' ] = { value: 1.0 };
+  velocityUniforms[ 'delta' ] = { value: 0.0 };
+  velocityUniforms[ 'testing' ] = { value: 1.0 };
+  velocityUniforms[ 'separationDistance' ] = { value: 1.0 };
+  velocityUniforms[ 'alignmentDistance' ] = { value: 1.0 };
+  velocityUniforms[ 'cohesionDistance' ] = { value: 1.0 };
+  velocityUniforms[ 'freedomFactor' ] = { value: 1.0 };
+  velocityUniforms[ 'predator' ] = { value: new THREE.Vector3() };
+  velocityVariable.material.defines.BOUNDS = BOUNDS.toFixed( 2 );
+}
+*/
+
+//////////////
 //  Boids   //
 //////////////
+
+
 
 // Create boid manager
 //these paramters can be changed
