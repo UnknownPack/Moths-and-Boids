@@ -69,7 +69,6 @@ function initGraphics() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   //for sky 
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-	renderer.toneMappingExposure = 0.5;
 
   document.body.appendChild(renderer.domElement);
 
