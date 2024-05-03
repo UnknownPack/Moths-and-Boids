@@ -4,6 +4,7 @@ export class Boid{
     constructor(position, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, scene, geometry, material) { 
         this.position = position; 
         this.velocity = velocity; 
+        var quaternion = new THREE.Quaternion(0,0,0);
         this.maxSpeed = maxSpeed; 
         this.maxForce = maxForce; 
         this.lightPoint = lightPoint;  
@@ -16,17 +17,28 @@ export class Boid{
         this.initBoidMesh(geometry, material); 
     }
     
-    update(){
+    update() {
         this.velocity.clampLength(0, this.maxSpeed);
         this.position.add(this.velocity);
+    
         if (this.boidMesh) {
-            //sets boid mesh position
             this.boidMesh.position.copy(this.position);
+            
+            // Update orientation to face the direction of velocity
+            if (!this.velocity.equals(new THREE.Vector3(0, 0, 0))) {
+                const currentDirection = new THREE.Vector3(0, 1, 0);
+                const targetDirection = this.velocity.clone().normalize();
+                const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
+                this.boidMesh.quaternion.slerp(quaternionTarget, 0.1); // Adjust 0.1 to a suitable factor for your simulation speed
+            }
         }
+    
         if (this.boundingSphere) {
             this.boundingSphere.center.copy(this.position);
         }
     }
+    
+
     
     boieRender(){
         //checks if boidMesh is not null and if this mesh is not already in the scene
@@ -46,52 +58,55 @@ export class Boid{
     } 
     
     applyForce(force, deltaTime) {
-        let inertiaFactor = 0.001; // Controls how quickly the object can change velocity, simulating inertia
-        let smoothingFactor = 10000000;
-        const smoothedForce = force.clone().multiplyScalar(smoothingFactor); 
-        const deltaV = smoothedForce.multiplyScalar(deltaTime * inertiaFactor); 
-        const axes = ['x', 'y', 'z'].sort(() => Math.random() - 0.5);
+        let inertiaFactor = 0.001;
+        let dampingFactor = 0.95;  // Reduce velocity by 5% each frame to add damping
+        let smoothedForce = force.clone().multiplyScalar(10000000);
+        let deltaV = smoothedForce.multiplyScalar(deltaTime * inertiaFactor);
+        this.velocity.add(deltaV);
+        this.velocity.multiplyScalar(dampingFactor); // Apply damping
+        this.velocity.clampLength(0, this.maxSpeed);
     
-        // Calculate target velocity after applying the deltaV
-        let targetVelocity = new THREE.Vector3().copy(this.velocity);
-        axes.forEach(axis => {
-            targetVelocity[axis] += deltaV[axis];
-        });
-    
-        // Clamp the targetVelocity to prevent it from exceeding maxSpeed
-        targetVelocity.clampLength(0, this.maxSpeed); 
-        const interpolationFactor = easeInOut(Math.min(deltaTime, 1.0));
-        this.velocity.lerp(targetVelocity, interpolationFactor);
-    
-        // Quaternion rotation
-        if (!this.velocity.equals(new THREE.Vector3(0, 0, 0))) { // Ensure the velocity is not zero
-            const currentDirection = new THREE.Vector3(0, 1, 0); // Assuming the boid's forward is along y-axis initially
+        // Quaternion rotation to face velocity direction
+        if (!this.velocity.equals(new THREE.Vector3(0, 0, 0))) {
+            const currentDirection = new THREE.Vector3(0, 1, 0);
             const targetDirection = this.velocity.clone().normalize();
-    
-            const quaternionCurrent = new THREE.Quaternion().setFromUnitVectors(currentDirection, this.boidMesh.quaternion);
             const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
-    
-            // Slerp from the current quaternion to the target quaternion
-            this.boidMesh.quaternion.slerp(quaternionTarget, interpolationFactor);
+            this.boidMesh.quaternion.slerp(quaternionTarget, 0.1);
         }
     }
     
     
-
-    randomMovement(){
-
+    
+    randomRotation() {
+        // Generate a new random direction vector
+        let disperseValue = 15;
+        let directionVector = new THREE.Vector3(
+            this.getRandomInt(-disperseValue, disperseValue),
+            this.getRandomInt(-disperseValue, disperseValue),
+            this.getRandomInt(-disperseValue, disperseValue));
+    
+        return directionVector;
     }
     
     attractionToLight(){
         if (!this.lightPoint) return new THREE.Vector3(0, 0, 0); // Return a zero vector if lightPoint is not set
         const lightAttractionForce = new THREE.Vector3().subVectors(this.lightPoint, this.position);
-        lightAttractionForce.multiplyScalar(this.lightAttraction); 
+        lightAttractionForce.multiplyScalar(this.lightAttraction);
+    
+        // Quaternion rotation towards light
+        if (!lightAttractionForce.equals(new THREE.Vector3(0, 0, 0))) {
+            const currentDirection = new THREE.Vector3(0, 0, -1);  // Assuming the forward direction
+            const targetDirection = lightAttractionForce.clone().normalize();
+            const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
+            this.boidMesh.quaternion.slerp(quaternionTarget, 0.05); // Adjust the factor as needed
+        }
+    
         return lightAttractionForce;
     }
     
+    
     avoidanceBehaviour(obstacles) {
         let avoidanceForce = new THREE.Vector3();
-        // Define a maximum magnitude for the avoidance force
         const maxAvoidanceForce = 0.05;
     
         for (let obstacle of obstacles) {  
@@ -108,8 +123,17 @@ export class Boid{
             avoidanceForce.normalize().multiplyScalar(maxAvoidanceForce);
         }
     
+        // Quaternion rotation to lean back from obstacles
+        if (!avoidanceForce.equals(new THREE.Vector3(0, 0, 0))) {
+            const currentDirection = new THREE.Vector3(0, 0, 1);  // Assuming the backward direction
+            const targetDirection = avoidanceForce.clone().normalize();
+            const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
+            this.boidMesh.quaternion.slerp(quaternionTarget, 0.05); // Adjust the factor as needed
+        }
+    
         return avoidanceForce;
     }
+    
 
     updateSpatialKey(spatialKey){
         this.spatialKey = spatialKey;

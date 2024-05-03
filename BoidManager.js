@@ -18,6 +18,7 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
           this.lightPoint = null;  
           this.lightAttraction = lightAttraction; 
           this.spawnRadius = spawnRadius;
+          this.minDistance_toLight = 5;
           
            
 
@@ -40,13 +41,13 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
                         });
                         this.mothGeometry = child.geometry;
                         this.mothMaterial = child.material;
-                        this.makeBoids(); // Ensure this is called only after the geometry and materials are fully prepared
+                        this.makeBoids(); // Ensure this is called only after the geometry and materials are fully prepared 
                     }
                 });
             }, null, (error) => {
                 console.error('An error happened during OBJ loading:', error);
             });
-        });
+        }); 
       }
 
       makeBoids(){
@@ -71,7 +72,7 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
       }
 
     
-      updateBoids(deltaTime) {  
+      updateBoids(deltaTime) {    
         this.grid.clear();
         for (const boid of this.boids) {
           this.grid.insertBoidAtPosition(boid,boid.givePos());
@@ -85,7 +86,7 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
             var avoidanceForce = boid.avoidanceBehaviour(nearbyBoids);
     
             //change value of 10 if you want
-            if(boid.position.distanceTo(this.lightPoint) > 1){
+            if(boid.position.distanceTo(this.lightPoint) > this.minDistance_toLight){
               boid.applyForce(lightAttractionForce, deltaTime);
             } 
             boid.applyForce(avoidanceForce, deltaTime); 
@@ -98,21 +99,25 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
 
       
 
-      setLightPoint(lightPoint){
+    setLightPoint(lightPoint){
         this.lightPoint = lightPoint;
         // Update lightPoint for each boid
         this.boids.forEach(boid => {
             boid.lightPoint = lightPoint;
         });
     }
+
+    addObjectToGrid(object){
+      
+    }
     
     
-        getRandomInt(min, max) {
-            return Math.floor(Math.random() * (max - min + 1)) + min;
-        }
+    getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
     
-        getRandomFloat(min, max) {
-        return Math.random() * (max - min) + min;
+    getRandomFloat(min, max) {
+      return Math.random() * (max - min) + min;
     }
   }
 
