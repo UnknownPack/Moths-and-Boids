@@ -382,7 +382,7 @@ function updatePhysics(deltaTime) {
 // Create boid manager
 //these paramters can be changed
 
-const numberOfBoids = 100;
+const numberOfBoids = 5;
 const obstacles = [];
 const velocity = 0.5;
 const maxSpeed = 0.1;

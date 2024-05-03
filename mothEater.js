@@ -25,11 +25,7 @@ export class mothEater{
     meal(){
 
     }
-
-    eatMoth(){
-        
-    }
-
+    
     updateSpatialKey(spatialKey){
         this.spatialKey = spatialKey;
     }

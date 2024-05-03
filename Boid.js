@@ -40,10 +40,8 @@ export class Boid{
     
 
     
-    boieRender(){
-        //checks if boidMesh is not null and if this mesh is not already in the scene
-        if (this.boidMesh && !this.scene.getObjectById(this.boidMesh.id)) {
-            //if both are true, it adds the boid mesh to the scene
+    boieRender(){ 
+        if (this.boidMesh && !this.scene.getObjectById(this.boidMesh.id)) { 
             this.scene.add(this.boidMesh);
         }
     }

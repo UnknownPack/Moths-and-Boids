@@ -9,6 +9,7 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
           this.numberOfBoids = numberOfBoids;
           this.scene = scene;  
           this.boids = [];  
+          this.otherObjects = [];
           this.obstacles = obstacles;
     
           this.velocity = velocity; 
@@ -23,8 +24,8 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
            
 
         //SPAITIAL PARTION
-        const gridSize = new THREE.Vector3(20, 20, 20); // Dimensions of the grid
-        const cellSize = 2; // Length of each side of a cubic cell
+        const gridSize = new THREE.Vector3(20, 20, 20);  
+        const cellSize = 2;  
         this.grid = new spatialGrid(gridSize, cellSize);
 
         //loading of model and materials
@@ -37,11 +38,11 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
                 object.traverse((child) => {
                     if (child.isMesh) {
                         child.material = new THREE.MeshPhongMaterial({
-                            color: 0x808080  // Optional: Set a default color or use loaded materials
+                            color: 0x808080   
                         });
                         this.mothGeometry = child.geometry;
                         this.mothMaterial = child.material;
-                        this.makeBoids(); // Ensure this is called only after the geometry and materials are fully prepared 
+                        this.makeBoids();  
                     }
                 });
             }, null, (error) => {
@@ -79,13 +80,11 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
           } 
 
           for (const boid of this.boids) {
-            const spatialKey = boid.giveSpatialKey(); // Assuming such a method exists to calculate the key from position.
+            const spatialKey = boid.giveSpatialKey();  
             const nearbyBoids = this.grid.getBoidsInAdjacentCellsByKey(spatialKey);
 
             var lightAttractionForce = boid.attractionToLight();
-            var avoidanceForce = boid.avoidanceBehaviour(nearbyBoids);
-    
-            //change value of 10 if you want
+            var avoidanceForce = boid.avoidanceBehaviour(nearbyBoids); 
             if(boid.position.distanceTo(this.lightPoint) > this.minDistance_toLight){
               boid.applyForce(lightAttractionForce, deltaTime);
             } 
@@ -94,21 +93,24 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
             boid.update();
             boid.boieRender();
           }
+
+          for (const obj of this.otherObjects){
+            this.grid.insertBoidAtPosition(obj,obj.position);
+          }
     
       }
 
       
 
     setLightPoint(lightPoint){
-        this.lightPoint = lightPoint;
-        // Update lightPoint for each boid
+        this.lightPoint = lightPoint; 
         this.boids.forEach(boid => {
             boid.lightPoint = lightPoint;
         });
     }
 
     addObjectToGrid(object){
-      
+      this.otherObjects.add(object);
     }
     
     
