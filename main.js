@@ -66,8 +66,9 @@ function initGraphics() {
   // Creates the renderer
   renderer = new THREE.WebGLRenderer();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  //renderer.shadowMap.enabled = true;
+  //renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setPixelRatio(window.devicePixelRatio * 0.5); 
   //for sky 
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
@@ -100,29 +101,51 @@ function initPhysics() {
   transformAux1 = new Ammo.btTransform();
 
 }
-let sky, sun;
+let sky, sun, elevation, azimuth, phi, theta, uniforms;
 function initSky(){
   sky = new Sky();
 	sky.scale.setScalar( 450000 );
 	scene.add( sky );
   sun = new THREE.Vector3();
 
-  let elevation = 16.6; 
-  let azimuth = 150; //rotation
+  uniforms = sky.material.uniforms;
+  renderer.toneMappingExposure = 0.2; // 0-1
+  uniforms[ 'turbidity' ].value = 0; // 0-20
+  uniforms[ 'rayleigh' ].value = 0.147; //0-4
+	uniforms[ 'mieCoefficient' ].value = 0.023; // 0-0.1
+	uniforms[ 'mieDirectionalG' ].value = 0.7; //0-1
 
-  const uniforms = sky.material.uniforms;
-  //Sun position
+  updateSky(0);
+}
+function updateSky(time){
+  const elevation = 2 + 60 * Math.sin(Math.PI * time); // 0-90
+  const azimuth = 2* 180 * time; //-180 - 180
   const phi = THREE.MathUtils.degToRad( 90 - elevation );
 	const theta = THREE.MathUtils.degToRad( azimuth );
   sun.setFromSphericalCoords( 1, phi, theta );
   uniforms[ 'sunPosition' ].value.copy( sun );
-  renderer.toneMappingExposure = 0.2;
-  uniforms[ 'turbidity' ].value = 0;
-  uniforms[ 'rayleigh' ].value = 0.147;
-	uniforms[ 'mieCoefficient' ].value = 0.023;
-	uniforms[ 'mieDirectionalG' ].value = 0.7;
+  renderer.toneMappingExposure += time/10;
 
 }
+function resetSky(){
+  const elevation = 0; // 0-90
+  const azimuth = -180; //-180 - 180
+  const phi = THREE.MathUtils.degToRad( 90 - elevation );
+	const theta = THREE.MathUtils.degToRad( azimuth );
+  sun.setFromSphericalCoords( 1, phi, theta );
+  uniforms[ 'sunPosition' ].value.copy( sun );
+  renderer.toneMappingExposure = 0.2; // 0-1
+}
+
+/*
+function initNightSky(){
+  float theta = acos( direction.y ); // elevation --> y-axis, [-pi/2, pi/2]
+  float phi = atan( direction.z, direction.x ); // azimuth --> x-axis [-pi/2, pi/2]
+  vec2 uv = vec2( phi, theta ) / vec2( 2.0 * pi, pi ) + vec2( 0.5, 0.0 );
+  vec3 L0 = vec3( 0.1 ) * Fex; explaine the code for nightsky
+}*/
+
+
 
 function createObjects() {
 
@@ -324,11 +347,30 @@ function createRigidBody(threeObject, physicsShape, mass, pos, quat) {
 
 }
 
+let lastSkyUpdate = 0;
+const updateInterval = 1000;
+let elapsedTime = 0;
 function animate() {
   requestAnimationFrame(animate);
   if (scene != undefined) {
     requestAnimationFrame(MyUpdateLoop);
   }
+  const now = performance.now();
+  const delta = clock.getDelta();
+  elapsedTime += delta;
+  const totalDayTime = 300;
+  const timeOfDay = (elapsedTime % totalDayTime) / totalDayTime;
+  if(elapsedTime >= totalDayTime){
+    resetSky();
+    elapsedTime %= totalDayTime;
+    console.log("a new day");
+  }
+
+  if (now - lastSkyUpdate > updateInterval) {
+    updateSky(timeOfDay);
+    lastSkyUpdate = now; 
+  }
+  renderer.render(scene, camera);
 }
 
 function updatePhysics(deltaTime) {
@@ -419,7 +461,7 @@ function initComputeRenderer() {
 // Create boid manager
 //these paramters can be changed
 
-const numberOfBoids = 100;
+const numberOfBoids = 0;
 const obstacles = [];
 const velocity = 0.5;
 const maxSpeed = 0.1;
@@ -432,10 +474,10 @@ const spawnRadius = 10;
 const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene);
 
 //final update loop
-var clock = new THREE.Clock();
+let clock = new THREE.Clock();
 var deltaTime; 
 var MyUpdateLoop = function () { 
-  console.log( lightPoint_position);
+  //console.log( lightPoint_position);
   deltaTime = clock.getDelta();
   CreateScene();
   updatePhysics(deltaTime);
