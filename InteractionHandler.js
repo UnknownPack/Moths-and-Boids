@@ -8,6 +8,8 @@ export class InteractionHandler{
         this.camera = camera;
         this.renderer = renderer;
         const controls = new DragControls(this.draggedObjects, camera, renderer.domElement);
+        controls.transformGroup = true;
+        
         /*
         controls.addEventListener( 'dragstart', function ( event ) {
             // TODO add an animated cable swing

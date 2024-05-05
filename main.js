@@ -20,7 +20,9 @@ let physicsWorld;
 const margin = 0.05;
 const rigidBodies = [];
 let hinge;
+let base;
 let rope;
+let lightbulb;
 let transformAux1;
 
 let armMovement = 0;
@@ -101,104 +103,129 @@ function createObjects() {
   const bulbRadius = 0.6;
   const pos = new THREE.Vector3(0, 0, bulbRadius);
   const quat = new THREE.Quaternion();
-  // TODO change to light model
+  // light model
   const loader = new GLTFLoader().setPath('models/ceilling_lamp/');
-    loader.load('scene.gltf', (gltf) => {
-    const mesh = gltf.scene;
-    mesh.position.set(0, 3, 3);
-    mesh.scale.set(0.2, 0.2, 0.2);
-    scene.add(mesh);
-  } );
+  loader.load('scene.gltf', (gltf) => {
+    const group = new THREE.Group();
+    createLightBase(group);
+    lightbulb = gltf.scene;
+    lightbulb.position.set(0, 0, 0);
+    lightbulb.rotation.x = Math.PI;
+    lightbulb.scale.set(0.1, 0.1, 0.1);
+    lightbulb.name = "lightbulb";
+    let lightbulbMaterial = new THREE.MeshPhysicalMaterial();
+    lightbulbMaterial.emissive.setHex(0xfddc5c);
+    lightbulbMaterial.transmission = 1.0;
+    lightbulb.children[0].children[0].children[8].material = lightbulbMaterial;
+    lightbulb.children[0].children[0].children[0].visible = false;
+    lightbulb.children[0].children[0].children[2].visible = false;
+    lightbulb.children[0].children[0].children[3].visible = false;
+    lightbulb.children[0].children[0].children[4].visible = false;
+    lightbulb.children[0].children[0].children[5].visible = false;
+
+    // bulb physics 
+    const bulbShape = new Ammo.btSphereShape(bulbRadius);
+    bulbShape.setMargin(margin);
+    console.log(lightbulb.position);
+    createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
+    lightbulb.userData.physicsBody.setFriction(0.5);
+
+    // creates the pointlight of the swinging light
+    const light = new THREE.PointLight(0xffffff, 1, 100, 30.0);
+    lightbulb.add(light);
+
+    let ropeSoftBody;
+    const ropeNumSegments = 10;
+    const ropeLength = 4;
+    ropeSoftBody = createRope(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group);
+
+    // Glue the rope extremes to the ball and the arm
+    const influence = 1;
+    //ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
+    //ropeSoftBody.appendAnchor(ropeLength, base.userData.physicsBody, true, influence);
+  });
+
+  function createRope(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group) {
+    // ROPE
+    // creates rope graphic object
+    const ropeMass = 5;
+    const ropePos = (lightbulb.position);
+    ropePos.y = bulbRadius - 1 - ropeLength;
+
+    const segmentLength = ropeLength / ropeNumSegments;
+    const ropeGeometry = new THREE.BufferGeometry();
+    const ropeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+    const ropePositions = [];
+    const ropeIndices = [];
+
+    for (let i = 0; i < ropeNumSegments + 1; i++) {
+
+      ropePositions.push(ropePos.x, ropePos.y + i * segmentLength, ropePos.z);
+
+    }
+
+    for (let i = 0; i < ropeNumSegments; i++) {
+
+      ropeIndices.push(i, i + 1);
+
+    }
+
+    ropeGeometry.setIndex(new THREE.BufferAttribute(new Uint16Array(ropeIndices), 1));
+    ropeGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ropePositions), 3));
+    ropeGeometry.computeBoundingSphere();
+    rope = new THREE.LineSegments(ropeGeometry, ropeMaterial);
+    rope.castShadow = true;
+    rope.receiveShadow = true;
+    rope.add(lightbulb);
+    base.add(rope);
+    group.add(base);
+    scene.add(group);
+
+    // Rope physic object
+    const softBodyHelpers = new Ammo.btSoftBodyHelpers();
+    const ropeStart = new Ammo.btVector3(ropePos.x, ropePos.y, ropePos.z);
+    const ropeEnd = new Ammo.btVector3(ropePos.x, ropePos.y + ropeLength, ropePos.z);
+    ropeSoftBody = softBodyHelpers.CreateRope(physicsWorld.getWorldInfo(), ropeStart, ropeEnd, ropeNumSegments - 1, 0);
+    const sbConfig = ropeSoftBody.get_m_cfg();
+    sbConfig.set_viterations(10);
+    sbConfig.set_piterations(10);
+    ropeSoftBody.setTotalMass(ropeMass, false);
+    Ammo.castObject(ropeSoftBody, Ammo.btCollisionObject).getCollisionShape().setMargin(margin * 3);
+    physicsWorld.addSoftBody(ropeSoftBody, 1, - 1);
+    rope.userData.physicsBody = ropeSoftBody;
+    // Disable deactivation
+    ropeSoftBody.setActivationState(4);
+    return ropeSoftBody;
+  }
+
+  function createLightBase(group) {
+    // LIGHT BASE
+    let baseMass = 0;
+    const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xA9A9A9 });
+    base = new THREE.Mesh(new THREE.CylinderGeometry( 0.2, 0.2, 0.2, 32 ), baseMaterial);
+    base.position.x = 0;
+    base.position.y = 4;
+    base.position.z = 5;
+    base.castShadow = true;
+    base.receiveShadow = true;
+    const baseShape = new Ammo.btBoxShape(bulbRadius);
+    baseShape.setMargin(margin);
+    createRigidBody(base, baseShape, baseMass, base.position, quat);
+    base.userData.physicsBody.setFriction(0.5);
+
+    // Makes base draggable
+    const interactionHandler = new InteractionHandler(camera, renderer);
+    interactionHandler.addDragObject(group);
+  }
+
+
   // creates a sphere as a temporary reference for light bulb interaction 
-  const lightbulb_geometry = new THREE.SphereGeometry(bulbRadius);
-  const lightbulb_material = new THREE.MeshPhongMaterial({ color: 0xfddc5c, transparent: true });
-  const lightbulb = new THREE.Mesh(lightbulb_geometry, lightbulb_material);
-  lightbulb.name = "lightbulb";
-  lightbulb.position.y = pos.y;
-  lightbulb.position.z = pos.z;
-  const bulbShape = new Ammo.btSphereShape(bulbRadius);
-  bulbShape.setMargin(margin);
-  createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
-  lightbulb.userData.physicsBody.setFriction(0.5);
-
-  // creates the pointlight of the swinging light
-  const light = new THREE.PointLight(0xfddc5c, 1, 100);
-  lightbulb.add(light);
-
-  // ROPE
-  // creates rope graphic object
-  const ropeNumSegments = 10;
-  const ropeLength = 4;
-  const ropeMass = 5;
-  const ropePos = lightbulb.position;
-  ropePos.y = bulbRadius - 1;
-
-  const segmentLength = ropeLength / ropeNumSegments;
-  const ropeGeometry = new THREE.BufferGeometry();
-  const ropeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
-  const ropePositions = [];
-  const ropeIndices = [];
-
-  for (let i = 0; i < ropeNumSegments + 1; i++) {
-
-    ropePositions.push(ropePos.x, ropePos.y + i * segmentLength, ropePos.z);
-
-  }
-
-  for (let i = 0; i < ropeNumSegments; i++) {
-
-    ropeIndices.push(i, i + 1);
-
-  }
-
-  ropeGeometry.setIndex(new THREE.BufferAttribute(new Uint16Array(ropeIndices), 1));
-  ropeGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ropePositions), 3));
-  ropeGeometry.computeBoundingSphere();
-  rope = new THREE.LineSegments(ropeGeometry, ropeMaterial);
-  rope.castShadow = true;
-  rope.receiveShadow = true;
-  rope.add(lightbulb)
-
-
-  // LIGHT BASE
-  let baseMass = 0;
-  const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xffddff });
-  const base = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0,2), baseMaterial);
-  base.position.x = lightbulb.position.x;
-  base.position.y = 4;
-  base.position.z = 3;
-  base.castShadow = true;
-  base.receiveShadow = true;
-  base.add(rope);
-  const baseShape = new Ammo.btBoxShape(bulbRadius);
-  baseShape.setMargin(margin);
-  createRigidBody(base, baseShape, baseMass, base.position, quat);
-  base.userData.physicsBody.setFriction(0.5);
-
-  // Makes base draggable
-  const interactionHandler = new InteractionHandler(camera, renderer);
-  interactionHandler.addDragObject(base);
-  scene.add(base)
-
-  // Rope physic object
-  const softBodyHelpers = new Ammo.btSoftBodyHelpers();
-  const ropeStart = new Ammo.btVector3(ropePos.x, ropePos.y, ropePos.z);
-  const ropeEnd = new Ammo.btVector3(ropePos.x, ropePos.y + ropeLength, ropePos.z);
-  const ropeSoftBody = softBodyHelpers.CreateRope(physicsWorld.getWorldInfo(), ropeStart, ropeEnd, ropeNumSegments - 1, 0);
-  const sbConfig = ropeSoftBody.get_m_cfg();
-  sbConfig.set_viterations(10);
-  sbConfig.set_piterations(10);
-  ropeSoftBody.setTotalMass(ropeMass, false);
-  Ammo.castObject(ropeSoftBody, Ammo.btCollisionObject).getCollisionShape().setMargin(margin * 3);
-  physicsWorld.addSoftBody(ropeSoftBody, 1, - 1);
-  rope.userData.physicsBody = ropeSoftBody;
-  // Disable deactivation
-  ropeSoftBody.setActivationState(4);
-
-  // Glue the rope extremes to the ball and the arm
-  const influence = 1;
-  ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
-  ropeSoftBody.appendAnchor(10, ropeNumSegments, base.userData.physicsBody, true, influence);
+  // const lightbulb_geometry = new THREE.SphereGeometry(bulbRadius);
+  // const lightbulb_material = new THREE.MeshPhongMaterial({ color: 0xfddc5c, transparent: true });
+  // const lightbulb = new THREE.Mesh(lightbulb_geometry, lightbulb_material);
+  // lightbulb.name = "lightbulb";
+  // lightbulb.position.y = pos.y;
+  // lightbulb.position.z = pos.z;
 
   // Hinge constraint to move the arm
   // const pivotA = new Ammo.btVector3(0, ropePos.y * 0.5, 0);
@@ -334,13 +361,13 @@ function updatePhysics(deltaTime) {
 }
 
 //////////////
-  // ORBIT CONTROLS //
-  //////////////
+// ORBIT CONTROLS //
+//////////////
 
-  // move mouse and: left   click to rotate,
-  //                 middle click to zoom,
-  //                 right  click to pan
-  // add the new control and link to the current camera to transform its position
+// move mouse and: left   click to rotate,
+//                 middle click to zoom,
+//                 right  click to pan
+// add the new control and link to the current camera to transform its position
 
 //   controls = new OrbitControls(camera, renderer.domElement);
 
@@ -389,7 +416,9 @@ var deltaTime;
 var MyUpdateLoop = function () {
   deltaTime = clock.getDelta();
   CreateScene();
-  updatePhysics(deltaTime);
+  if (scene.children[0].name == "lightbulb") {
+    updatePhysics(deltaTime);
+  }
 
   renderer.render(scene, camera);
 
