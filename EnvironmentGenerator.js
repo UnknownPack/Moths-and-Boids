@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { PLYLoader } from './build/loaders/PLYLoader.js';
 import { GLTFLoader} from './build/loaders/GLTFLoader.js';
 import { OBJLoader } from './build/loaders/OBJLoader.js';
+import { Sky } from './build/environment/Sky.js';
+//import { ShaderChunk} from './build/shaders/ShaderChunk.js';
 
 export class EnvironmentGenerator{
     constructor(scene) {
@@ -20,8 +22,12 @@ export class EnvironmentGenerator{
         ground.position.y = -1;
         this.scene.add(ground);
     }
-    generateEnvironment(){
-    }
+/*
+    generateSky(scene){       
+        let sky = new Sky();
+        sky.scale.setScalar( 450000 );
+        this.scene.add(sky);
+    }*/
 
     loadOBJEnvironmentModel(filePath){
         var loader = new OBJLoader();
@@ -53,19 +59,27 @@ export class EnvironmentGenerator{
         var rot = new THREE.Matrix4();
         var combined = new THREE.Matrix4();
 
-        sca.makeScale(10/size.length(),10/size.length(),10/size.length());
-        tra.makeTranslation (-center.x,-center.y,-center.z);
+        
+        tra.makeTranslation (-center.x-150,-center.y+80,-center.z);
         if(filePath == 'models/american_style_house/scene.gltf'){
+            sca.makeScale(150/size.length(),150/size.length(),150/size.length());
+            tra.makeTranslation (-center.x-150,-center.y+80,-center.z);
             rot.makeRotationY(270*Math.PI/180);
             combined.multiply(rot);
         }else if(filePath == 'models/forest_house/scene.gltf'){
             rot.makeRotationY(90*Math.PI/180);
             combined.multiply(rot);
+        }else if(filePath == 'models/low_poly_wood_fence_on_grass/scene.gltf'){
+            sca.makeScale(300/size.length(),300/size.length(),300/size.length());
+            tra.makeTranslation (-center.x,-center.y-10,-center.z-50);
+
+        }else if(filePath == 'models/stylized_bush/scene.gltf'){
+            sca.makeScale(25/size.length(),25/size.length(),25/size.length());
+            tra.makeTranslation (-center.x-5,-1.7,-center.z);
         }
         combined.multiply(sca);     
         combined.multiply(tra);
         houseMesh.applyMatrix4(combined);
-        
         this.scene.add(houseMesh);
     });
     }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export class Boid{
-    constructor(position, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, scene) { 
+    constructor(position, velocity, maxSpeed, maxForce, searchRadius, lightPoint, lightAttraction, scene, geometry, material) { 
         this.position = position; 
         this.velocity = velocity; 
         this.maxSpeed = maxSpeed; 
@@ -13,8 +13,7 @@ export class Boid{
         this.boidMesh = null;  
         this.boundingSphere = null;
         this.spatialKey = '';
-        this.initBoidMesh();
-        this.initBoundingSphere();
+        this.initBoidMesh(geometry, material); 
     }
     
     update(){
@@ -37,52 +36,47 @@ export class Boid{
         }
     }
     
-    initBoidMesh() {
+    initBoidMesh(geometry, material) {
         // I'd reckon you can change the mesh of the moth here
         // I will use spheres to represent the moth
     
-        const geometry = new THREE.SphereGeometry(0.1, 16, 16);
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         this.boidMesh = new THREE.Mesh(geometry, material);
+        this.boidMesh.scale.set(0.07, 0.07, 0.07);
         this.boidMesh.position.copy(this.position);
-    }
-
-    initBoundingSphere() {
-        // this will be the volume upon which collision detection checks will be made
-        let sphereRadius = this.searchRadius * 2; 
-        this.boundingSphere = new THREE.Sphere(this.position.clone(), sphereRadius);
-    }
+    } 
     
     applyForce(force, deltaTime) {
         let inertiaFactor = 0.001; // Controls how quickly the object can change velocity, simulating inertia
         let smoothingFactor = 10000000;
-        const smoothedForce = force.clone().multiplyScalar(smoothingFactor);
-    
-        // Calculate the desired change in velocity, factoring in inertia
-        const deltaV = smoothedForce.multiplyScalar(deltaTime * inertiaFactor);
-    
-        // Shuffle the axes to apply forces in random order
+        const smoothedForce = force.clone().multiplyScalar(smoothingFactor); 
+        const deltaV = smoothedForce.multiplyScalar(deltaTime * inertiaFactor); 
         const axes = ['x', 'y', 'z'].sort(() => Math.random() - 0.5);
     
-        // Apply the deltaV component by component in the randomized order
+        // Calculate target velocity after applying the deltaV
+        let targetVelocity = new THREE.Vector3().copy(this.velocity);
         axes.forEach(axis => {
-            let targetVelocity = new THREE.Vector3();
-            targetVelocity.copy(this.velocity);
-    
-            // Apply the change to the current axis
             targetVelocity[axis] += deltaV[axis];
-    
-            // Limit the velocity on this axis to prevent it from increasing indefinitely
-            targetVelocity[axis] = Math.min(Math.max(targetVelocity[axis], -this.maxSpeed), this.maxSpeed);
-    
-            // Smooth out the interpolation of the velocity change for this axis
-            const interpolationFactor = easeInOut(Math.min(deltaTime, 1.0));
-            this.velocity[axis] += (targetVelocity[axis] - this.velocity[axis]) * interpolationFactor;
         });
     
-        // Ensure the total velocity doesn't exceed maxSpeed
-        this.velocity.clampLength(0, this.maxSpeed);
-    }    
+        // Clamp the targetVelocity to prevent it from exceeding maxSpeed
+        targetVelocity.clampLength(0, this.maxSpeed); 
+        const interpolationFactor = easeInOut(Math.min(deltaTime, 1.0));
+        this.velocity.lerp(targetVelocity, interpolationFactor);
+    
+        // Quaternion rotation
+        if (!this.velocity.equals(new THREE.Vector3(0, 0, 0))) { // Ensure the velocity is not zero
+            const currentDirection = new THREE.Vector3(0, 1, 0); // Assuming the boid's forward is along y-axis initially
+            const targetDirection = this.velocity.clone().normalize();
+    
+            const quaternionCurrent = new THREE.Quaternion().setFromUnitVectors(currentDirection, this.boidMesh.quaternion);
+            const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
+    
+            // Slerp from the current quaternion to the target quaternion
+            this.boidMesh.quaternion.slerp(quaternionTarget, interpolationFactor);
+        }
+    }
+    
+    
 
     randomMovement(){
 
