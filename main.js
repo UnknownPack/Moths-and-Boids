@@ -151,11 +151,11 @@ function createObjects() {
 
   // ENVIRONMENT
   var environment = new EnvironmentGenerator(scene);
-  var filepath = 'models/american_style_house/scene.gltf';
-  var filepath2 = 'models/forest_house/scene.gltf';
-  environment.loadGLTFEnvironmentModel(filepath);
-  var filepath3 = 'models/Campfire.obj';
-  //environment.loadOBJEnvironmentModel(filepath2);
+  environment.loadGLTFEnvironmentModel('models/american_style_house/scene.gltf');
+  environment.loadGLTFEnvironmentModel('models/low_poly_wood_fence_on_grass/scene.gltf');
+  environment.loadGLTFEnvironmentModel('models/stylized_bush/scene.gltf');
+  //environment.loadGLTFEnvironmentModel('models/forest_house/scene.gltf');
+  //environment.loadOBJEnvironmentModel('models/Campfire.obj');
 
   // LIGHTBULB
   const bulbMass = 10;
