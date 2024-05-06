@@ -3,7 +3,7 @@ import { Boid } from './Boid.js';
 import { spatialGrid } from './SpatialPartition.js'; 
 import { OBJLoader } from './build/loaders/OBJLoader.js';
 import { MTLLoader } from './build/loaders/MTLLoader.js';
-
+import { GLTFLoader } from './build/loaders/GLTFLoader.js';
   export class BoidManager {
       constructor(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene) {
           this.numberOfBoids = numberOfBoids;
@@ -28,27 +28,21 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
         const cellSize = 2;  
         this.grid = new spatialGrid(gridSize, cellSize);
 
-        //loading of model and materials
-        const mtlLoader = new MTLLoader();
-        mtlLoader.load('./models/Moth/texas_moth/moth.mtl', (materials) => {
-            materials.preload();
-            const objLoader = new OBJLoader();
-            objLoader.setMaterials(materials);
-            objLoader.load('./models/Moth/texas_moth/moth.obj', (object) => {
-                object.traverse((child) => {
-                    if (child.isMesh) {
-                        child.material = new THREE.MeshPhongMaterial({
-                            color: 0x808080   
-                        });
-                        this.mothGeometry = child.geometry;
-                        this.mothMaterial = child.material;
-                        this.makeBoids();  
-                    }
-                });
-            }, null, (error) => {
-                console.error('An error happened during OBJ loading:', error);
+        const gltfLoader = new GLTFLoader();
+        gltfLoader.load('./models/Moth/moth.gltf', (gltf) => {
+            gltf.scene.traverse((child) => {
+                if (child.isMesh) {
+                    child.material = new THREE.MeshPhongMaterial({
+                        color: 0x808080   // You can customize the material properties
+                    });
+                    this.mothGeometry = child.geometry;
+                    this.mothMaterial = child.material;
+                    this.makeBoids();  // Initialize the boids once the model is loaded
+                }
             });
-        }); 
+        }, null, (error) => {
+            console.error('An error happened during GLTF loading:', error);
+        });
       }
 
       makeBoids(){
@@ -64,8 +58,11 @@ import { MTLLoader } from './build/loaders/MTLLoader.js';
             this.getRandomFloat(-this.velocity, this.velocity)
         ).normalize().multiplyScalar(this.maxSpeed);
 
+        let searhR = this.getRandomInt(-this.searchRadius, this.searchRadius)
+        
+
           const boid = new Boid(spawnPosition, boidVelocity, this.maxSpeed, 
-                                  this.maxForce, this.searchRadius, 
+                                  this.maxForce, searhR, 
                                   this.lightPoint, this.lightAttraction, this.scene, this.mothGeometry, this.mothMaterial);
 
           this.boids.push(boid);
