@@ -86,21 +86,36 @@ export class Boid{
         return directionVector;
     }
     
-    attractionToLight(){
-        if (!this.lightPoint) return new THREE.Vector3(0, 0, 0); // Return a zero vector if lightPoint is not set
-        const lightAttractionForce = new THREE.Vector3().subVectors(this.lightPoint, this.position);
-        lightAttractionForce.multiplyScalar(this.lightAttraction);
+    attractionToLight() {
+        let lightAttractionForce;  
     
-        // Quaternion rotation towards light
-        if (!lightAttractionForce.equals(new THREE.Vector3(0, 0, 0))) {
-            const currentDirection = new THREE.Vector3(0, 0, -1);  // Assuming the forward direction
-            const targetDirection = lightAttractionForce.clone().normalize();
-            const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
-            this.boidMesh.quaternion.slerp(quaternionTarget, 0.05); // Adjust the factor as needed
+        if (!this.lightPoint) return new THREE.Vector3(0, 0, 0);  
+    
+        if (this.lightAttraction > 0) {
+            lightAttractionForce = new THREE.Vector3().subVectors(this.lightPoint, this.position);
+            lightAttractionForce.multiplyScalar(this.lightAttraction);
+            
+            // Quaternion rotation towards light
+            if (!lightAttractionForce.equals(new THREE.Vector3(0, 0, 0))) {
+                const currentDirection = new THREE.Vector3(0, 0, -1);  // Assuming the forward direction
+                const targetDirection = lightAttractionForce.clone().normalize();
+                const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
+                this.boidMesh.quaternion.slerp(quaternionTarget, 0.05); // Adjust the factor as needed
+            }
+        } 
+        
+        else if (this.lightAttraction <= 0) {
+            lightAttractionForce = new THREE.Vector3(
+                this.getRandomFloat(0.01, 1), 
+                this.getRandomFloat(0.01, 1), 
+                this.getRandomFloat(0.01, 1)
+            ).normalize().multiplyScalar(this.maxSpeed); // Example scalar to control the magnitude
         }
     
         return lightAttractionForce;
     }
+    
+    
     
     
     avoidanceBehaviour(obstacles) {
@@ -131,6 +146,10 @@ export class Boid{
     
         return avoidanceForce;
     }
+
+    setLightPoint(point){
+        this.lightPoint = point;
+    }
     
 
     updateSpatialKey(spatialKey){
@@ -144,6 +163,14 @@ export class Boid{
     givePos(){
         return this.position;
     }
+
+    getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+      
+      getRandomFloat(min, max) {
+        return Math.random() * (max - min) + min;
+      }
   } 
 
   function easeInOut(t) {

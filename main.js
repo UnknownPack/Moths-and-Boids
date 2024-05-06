@@ -466,11 +466,11 @@ const obstacles = [];
 const velocity = 0.5;
 const maxSpeed = 0.1;
 const maxForce = 0.1;
-const searchRadius = 2;
+const searchRadius = 3;
 // change lightPoint Vector3 to lightbulb 
 const lightPoint = lightPoint_position;
-const lightAttraction = 50;
-const spawnRadius = 10;
+const lightAttraction = 1000;
+const spawnRadius = 20;
 const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene);
 
 //final update loop
