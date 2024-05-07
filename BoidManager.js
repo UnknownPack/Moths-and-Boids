@@ -23,11 +23,11 @@ export class BoidManager {
         this.targetMinDistance_toLight = this.getRandomInt(3, 10); // Initializing with a random target initially
 
         const gridSize = new THREE.Vector3(30, 30, 30);
-        const cellSize = 4;
+        const cellSize = 1;
         this.grid = new spatialGrid(gridSize, cellSize);
 
         const gltfLoader = new GLTFLoader();
-        gltfLoader.load('./models/Moth/moth.gltf', (gltf) => {
+        gltfLoader.load('./models/Moth/moth2.gltf', (gltf) => {
             gltf.scene.traverse((child) => {
                 if (child.isMesh) {
                     child.material = new THREE.MeshPhongMaterial({
