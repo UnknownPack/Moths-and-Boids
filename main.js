@@ -107,7 +107,7 @@ function createObjects() {
   const loader = new GLTFLoader().setPath('models/ceilling_lamp/');
   loader.load('scene.gltf', (gltf) => {
     const group = new THREE.Group();
-    createLightBase(group);
+    createLightBase(group, bulbRadius, quat);
     lightbulb = gltf.scene;
     lightbulb.position.set(0, 0, 0);
     lightbulb.rotation.x = Math.PI;
@@ -137,87 +137,21 @@ function createObjects() {
     let ropeSoftBody;
     const ropeNumSegments = 10;
     const ropeLength = 4;
-    ropeSoftBody = createRope(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group);
+    var ropePos = (lightbulb.position);
+    ropeSoftBody = createRope(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group, ropePos, bulbRadius);
 
     // Glue the rope extremes to the ball and the arm
     const influence = 1;
-    //ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
-    //ropeSoftBody.appendAnchor(ropeLength, base.userData.physicsBody, true, influence);
+    ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
+    ropeSoftBody.appendAnchor(ropeLength, base.userData.physicsBody, true, influence);
+
+    // Hinge constraint to move the arm
+    // const pivotA = new Ammo.btVector3(0, ropePos.y * 0.5, 0);
+    // const pivotB = new Ammo.btVector3(0, - 0.2, - armLength * 0.5);
+    // const axis = new Ammo.btVector3(0, 1, 0);
+    // hinge = new Ammo.btHingeConstraint(pylon.userData.physicsBody, arm.userData.physicsBody, pivotA, pivotB, axis, axis, true);
+    // physicsWorld.addConstraint(hinge, true);
   });
-
-  function createRope(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group) {
-    // ROPE
-    // creates rope graphic object
-    const ropeMass = 5;
-    const ropePos = (lightbulb.position);
-    ropePos.y = bulbRadius - 1 - ropeLength;
-
-    const segmentLength = ropeLength / ropeNumSegments;
-    const ropeGeometry = new THREE.BufferGeometry();
-    const ropeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
-    const ropePositions = [];
-    const ropeIndices = [];
-
-    for (let i = 0; i < ropeNumSegments + 1; i++) {
-
-      ropePositions.push(ropePos.x, ropePos.y + i * segmentLength, ropePos.z);
-
-    }
-
-    for (let i = 0; i < ropeNumSegments; i++) {
-
-      ropeIndices.push(i, i + 1);
-
-    }
-
-    ropeGeometry.setIndex(new THREE.BufferAttribute(new Uint16Array(ropeIndices), 1));
-    ropeGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ropePositions), 3));
-    ropeGeometry.computeBoundingSphere();
-    rope = new THREE.LineSegments(ropeGeometry, ropeMaterial);
-    rope.castShadow = true;
-    rope.receiveShadow = true;
-    rope.add(lightbulb);
-    base.add(rope);
-    group.add(base);
-    scene.add(group);
-
-    // Rope physic object
-    const softBodyHelpers = new Ammo.btSoftBodyHelpers();
-    const ropeStart = new Ammo.btVector3(ropePos.x, ropePos.y, ropePos.z);
-    const ropeEnd = new Ammo.btVector3(ropePos.x, ropePos.y + ropeLength, ropePos.z);
-    ropeSoftBody = softBodyHelpers.CreateRope(physicsWorld.getWorldInfo(), ropeStart, ropeEnd, ropeNumSegments - 1, 0);
-    const sbConfig = ropeSoftBody.get_m_cfg();
-    sbConfig.set_viterations(10);
-    sbConfig.set_piterations(10);
-    ropeSoftBody.setTotalMass(ropeMass, false);
-    Ammo.castObject(ropeSoftBody, Ammo.btCollisionObject).getCollisionShape().setMargin(margin * 3);
-    physicsWorld.addSoftBody(ropeSoftBody, 1, - 1);
-    rope.userData.physicsBody = ropeSoftBody;
-    // Disable deactivation
-    ropeSoftBody.setActivationState(4);
-    return ropeSoftBody;
-  }
-
-  function createLightBase(group) {
-    // LIGHT BASE
-    let baseMass = 0;
-    const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xA9A9A9 });
-    base = new THREE.Mesh(new THREE.CylinderGeometry( 0.2, 0.2, 0.2, 32 ), baseMaterial);
-    base.position.x = 0;
-    base.position.y = 4;
-    base.position.z = 5;
-    base.castShadow = true;
-    base.receiveShadow = true;
-    const baseShape = new Ammo.btBoxShape(bulbRadius);
-    baseShape.setMargin(margin);
-    createRigidBody(base, baseShape, baseMass, base.position, quat);
-    base.userData.physicsBody.setFriction(0.5);
-
-    // Makes base draggable
-    const interactionHandler = new InteractionHandler(camera, renderer);
-    interactionHandler.addDragObject(group);
-  }
-
 
   // creates a sphere as a temporary reference for light bulb interaction 
   // const lightbulb_geometry = new THREE.SphereGeometry(bulbRadius);
@@ -227,13 +161,80 @@ function createObjects() {
   // lightbulb.position.y = pos.y;
   // lightbulb.position.z = pos.z;
 
-  // Hinge constraint to move the arm
-  // const pivotA = new Ammo.btVector3(0, ropePos.y * 0.5, 0);
-  //const pivotB = new Ammo.btVector3(0, - 0.2, - armLength * 0.5);
-  // const axis = new Ammo.btVector3(0, 1, 0);
-  // hinge = new Ammo.btHingeConstraint(pylon.userData.physicsBody, arm.userData.physicsBody, pivotA, pivotB, axis, axis, true);
-  // physicsWorld.addConstraint(hinge, true);
 }
+
+function createRope(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group, ropePos, bulbRadius) {
+  // ROPE
+  // creates rope graphic object
+  const ropeMass = 5;
+  ropePos.y = bulbRadius - 1 - ropeLength;
+
+  const segmentLength = ropeLength / ropeNumSegments;
+  const ropeGeometry = new THREE.BufferGeometry();
+  const ropeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+  const ropePositions = [];
+  const ropeIndices = [];
+
+  for (let i = 0; i < ropeNumSegments + 1; i++) {
+
+    ropePositions.push(ropePos.x, ropePos.y + i * segmentLength, ropePos.z);
+
+  }
+
+  for (let i = 0; i < ropeNumSegments; i++) {
+
+    ropeIndices.push(i, i + 1);
+
+  }
+
+  ropeGeometry.setIndex(new THREE.BufferAttribute(new Uint16Array(ropeIndices), 1));
+  ropeGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ropePositions), 3));
+  ropeGeometry.computeBoundingSphere();
+  rope = new THREE.LineSegments(ropeGeometry, ropeMaterial);
+  rope.castShadow = true;
+  rope.receiveShadow = true;
+  rope.add(lightbulb);
+  base.add(rope);
+  group.add(base);
+  scene.add(group);
+
+  // Rope physic object
+  const softBodyHelpers = new Ammo.btSoftBodyHelpers();
+  const ropeStart = new Ammo.btVector3(ropePos.x, ropePos.y, ropePos.z);
+  const ropeEnd = new Ammo.btVector3(ropePos.x, ropePos.y + ropeLength, ropePos.z);
+  ropeSoftBody = softBodyHelpers.CreateRope(physicsWorld.getWorldInfo(), ropeStart, ropeEnd, ropeNumSegments - 1, 0);
+  const sbConfig = ropeSoftBody.get_m_cfg();
+  sbConfig.set_viterations(10);
+  sbConfig.set_piterations(10);
+  ropeSoftBody.setTotalMass(ropeMass, false);
+  Ammo.castObject(ropeSoftBody, Ammo.btCollisionObject).getCollisionShape().setMargin(margin * 3);
+  physicsWorld.addSoftBody(ropeSoftBody, 1, - 1);
+  rope.userData.physicsBody = ropeSoftBody;
+  // Disable deactivation
+  ropeSoftBody.setActivationState(4);
+  return ropeSoftBody;
+}
+
+function createLightBase(group, bulbRadius, quat) {
+  // LIGHT BASE
+  let baseMass = 0;
+  const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xA9A9A9 });
+  base = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.2, 32), baseMaterial);
+  base.position.x = 0;
+  base.position.y = 4;
+  base.position.z = 5;
+  base.castShadow = true;
+  base.receiveShadow = true;
+  const baseShape = new Ammo.btBoxShape(bulbRadius);
+  baseShape.setMargin(margin);
+  createRigidBody(base, baseShape, baseMass, base.position, quat);
+  base.userData.physicsBody.setFriction(0.5);
+
+  // Makes base draggable
+  const interactionHandler = new InteractionHandler(camera, renderer);
+  interactionHandler.addDragObject(group);
+}
+
 
 function createParalellepiped(sx, sy, sz, mass, pos, quat, material) {
   const threeObject = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz, 1, 1, 1), material);
