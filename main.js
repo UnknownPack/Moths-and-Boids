@@ -198,7 +198,7 @@ function createObjects() {
     lightbulb.userData.physicsBody.setFriction(0.5);
 
     // creates the pointlight of the swinging light
-    const light = new THREE.PointLight(0xffffff, 1, 100, 30.0);
+    const light = new THREE.PointLight( 0xFFFFED, 1, 100 );
     lightbulb.add(light);
 
     let ropeSoftBody;
