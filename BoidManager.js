@@ -66,7 +66,7 @@ export class BoidManager {
     }
 
     updateBoids(deltaTime) {
-        console.log(this.lightPoint);
+        //console.log(this.lightPoint);
         this.grid.clear();
         for (const boid of this.boids) {
             this.grid.insertBoidAtPosition(boid, boid.givePos());
