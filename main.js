@@ -488,16 +488,16 @@ function initComputeRenderer() {
 // Create boid manager
 //these paramters can be changed
 
-const numberOfBoids = 100;
+const numberOfBoids = 150;
 const obstacles = [];
 const velocity = 0.5;
 const maxSpeed = 0.1;
 const maxForce = 0.1;
-const searchRadius = 2;
+const searchRadius = 3;
 // change lightPoint Vector3 to lightbulb 
-let lightPoint = new THREE.Vector3(0, 0, 3) ;
-const lightAttraction = 500;
-const spawnRadius = 10;
+const lightPoint = new THREE.Vector3(0,0,3);
+const lightAttraction = 1000;
+const spawnRadius = 20;
 const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene);
 boidManager.setLightPoint(lightPoint); 
 
