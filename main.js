@@ -4,7 +4,7 @@ import { EnvironmentGenerator } from './EnvironmentGenerator.js';
 import { InteractionHandler } from './InteractionHandler.js';
 import { BoidManager } from './BoidManager.js';
 import { GLTFLoader } from './build/loaders/GLTFLoader.js';
-import {GPUComputationRenderer} from './build/misc/GPUComputationRenderer.js';
+import { GPUComputationRenderer } from './build/misc/GPUComputationRenderer.js';
 import { Sky } from './build/environment/Sky.js';
 
 // GRAPHICS CONST
@@ -25,6 +25,7 @@ let hinge;
 let base;
 let rope;
 let lightbulb;
+let lightPoint = new THREE.Vector3(0, 0, 3);
 let transformAux1;
 
 let armMovement = 0;
@@ -47,6 +48,7 @@ function init() {
   createObjects();
   initInput();
   initSky();
+  console.log(scene.children);
 }
 
 function initGraphics() {
@@ -68,7 +70,7 @@ function initGraphics() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   //renderer.shadowMap.enabled = true;
   //renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.setPixelRatio(window.devicePixelRatio * 0.5); 
+  renderer.setPixelRatio(window.devicePixelRatio * 0.5);
   //for sky 
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
@@ -104,38 +106,38 @@ function initPhysics() {
 
 }
 let sky, sun, elevation, azimuth, phi, theta, uniforms;
-function initSky(){
+function initSky() {
   sky = new Sky();
-	sky.scale.setScalar( 450000 );
-	scene.add( sky );
+  sky.scale.setScalar(450000);
+  scene.add(sky);
   sun = new THREE.Vector3();
 
   uniforms = sky.material.uniforms;
   renderer.toneMappingExposure = 0.2; // 0-1
-  uniforms[ 'turbidity' ].value = 0; // 0-20
-  uniforms[ 'rayleigh' ].value = 0.147; //0-4
-	uniforms[ 'mieCoefficient' ].value = 0.023; // 0-0.1
-	uniforms[ 'mieDirectionalG' ].value = 0.7; //0-1
+  uniforms['turbidity'].value = 0; // 0-20
+  uniforms['rayleigh'].value = 0.147; //0-4
+  uniforms['mieCoefficient'].value = 0.023; // 0-0.1
+  uniforms['mieDirectionalG'].value = 0.7; //0-1
 
   updateSky(0);
 }
-function updateSky(time){
+function updateSky(time) {
   const elevation = 2 + 60 * Math.sin(Math.PI * time); // 0-90
-  const azimuth = 2* 180 * time; //-180 - 180
-  const phi = THREE.MathUtils.degToRad( 90 - elevation );
-	const theta = THREE.MathUtils.degToRad( azimuth );
-  sun.setFromSphericalCoords( 1, phi, theta );
-  uniforms[ 'sunPosition' ].value.copy( sun );
-  renderer.toneMappingExposure += time/10;
+  const azimuth = 2 * 180 * time; //-180 - 180
+  const phi = THREE.MathUtils.degToRad(90 - elevation);
+  const theta = THREE.MathUtils.degToRad(azimuth);
+  sun.setFromSphericalCoords(1, phi, theta);
+  uniforms['sunPosition'].value.copy(sun);
+  renderer.toneMappingExposure += time / 10;
 
 }
-function resetSky(){
+function resetSky() {
   const elevation = 0; // 0-90
   const azimuth = -180; //-180 - 180
-  const phi = THREE.MathUtils.degToRad( 90 - elevation );
-	const theta = THREE.MathUtils.degToRad( azimuth );
-  sun.setFromSphericalCoords( 1, phi, theta );
-  uniforms[ 'sunPosition' ].value.copy( sun );
+  const phi = THREE.MathUtils.degToRad(90 - elevation);
+  const theta = THREE.MathUtils.degToRad(azimuth);
+  sun.setFromSphericalCoords(1, phi, theta);
+  uniforms['sunPosition'].value.copy(sun);
   renderer.toneMappingExposure = 0.2; // 0-1
 }
 
@@ -167,7 +169,7 @@ function createObjects() {
   // light model
   const loader = new GLTFLoader().setPath('models/ceilling_lamp/');
   loader.load('scene.gltf', (gltf) => {
-    const group = new THREE.Group();
+    let group = new THREE.Group();
     createLightBase(group, bulbRadius, quat);
     lightbulb = gltf.scene;
     lightbulb.position.set(0, 0, 0);
@@ -184,19 +186,19 @@ function createObjects() {
     lightbulb.children[0].children[0].children[4].visible = false;
     lightbulb.children[0].children[0].children[5].visible = false;
 
+    lightPoint = group.position;
     // bulb physics 
-  
-  //assign the light's position as the lightPoint that the boids will be attracted to
-  boidManager.setLightPoint(lightbulb.position); 
+    //assign the light's position as the lightPoint that the boids will be attracted to
+    boidManager.setLightPoint(lightPoint);
 
-  const bulbShape = new Ammo.btSphereShape(bulbRadius);
+    const bulbShape = new Ammo.btSphereShape(bulbRadius);
     bulbShape.setMargin(margin);
     console.log(lightbulb.position);
     createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
     lightbulb.userData.physicsBody.setFriction(0.5);
 
     // creates the pointlight of the swinging light
-    const light = new THREE.PointLight( 0xFFFFED, 1, 100 );
+    const light = new THREE.PointLight(0xFFFFED, 1, 100);
     lightbulb.add(light);
 
     let ropeSoftBody;
@@ -284,7 +286,7 @@ function createLightBase(group, bulbRadius, quat) {
   // LIGHT BASE
   let baseMass = 0;
   const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xA9A9A9 });
-  base = new THREE.Mesh(new THREE.CylinderGeometry( 0.2, 0.2, 0.2, 32 ), baseMaterial);
+  base = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.2, 32), baseMaterial);
   base.position.x = 0;
   base.position.y = 4;
   base.position.z = 5;
@@ -387,7 +389,7 @@ function animate() {
   elapsedTime += delta;
   const totalDayTime = 300;
   const timeOfDay = (elapsedTime % totalDayTime) / totalDayTime;
-  if(elapsedTime >= totalDayTime){
+  if (elapsedTime >= totalDayTime) {
     resetSky();
     elapsedTime %= totalDayTime;
     console.log("a new day");
@@ -395,7 +397,7 @@ function animate() {
 
   if (now - lastSkyUpdate > updateInterval) {
     updateSky(timeOfDay);
-    lastSkyUpdate = now; 
+    lastSkyUpdate = now;
   }
   renderer.render(scene, camera);
 }
@@ -457,10 +459,10 @@ function initComputeRenderer() {
   fillVelocityTexture( dtVelocity );
 
   velocityVariable = gpuCompute.addVariable( 'textureVelocity', document.getElementById( 'fragmentShaderVelocity' ).textContent, dtVelocity );
-	positionVariable = gpuCompute.addVariable( 'texturePosition', document.getElementById( 'fragmentShaderPosition' ).textContent, dtPosition );
+  positionVariable = gpuCompute.addVariable( 'texturePosition', document.getElementById( 'fragmentShaderPosition' ).textContent, dtPosition );
 
   gpuCompute.setVariableDependencies( velocityVariable, [ positionVariable, velocityVariable ] );
-	gpuCompute.setVariableDependencies( positionVariable, [ positionVariable, velocityVariable ] );
+  gpuCompute.setVariableDependencies( positionVariable, [ positionVariable, velocityVariable ] );
 
   positionUniforms = positionVariable.material.uniforms;
   velocityUniforms = velocityVariable.material.uniforms;
@@ -494,28 +496,23 @@ const velocity = 0.5;
 const maxSpeed = 0.1;
 const maxForce = 0.1;
 const searchRadius = 3;
-// change lightPoint Vector3 to lightbulb 
-const lightPoint = new THREE.Vector3(0,0,3);
 const lightAttraction = 1000;
 const spawnRadius = 20;
 const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene);
-boidManager.setLightPoint(lightPoint); 
+boidManager.setLightPoint(lightPoint);
 
 //final update loop
 let clock = new THREE.Clock();
-var deltaTime; 
-var MyUpdateLoop = function () { 
-  //console.log( lightPoint_position);
+var deltaTime;
+var MyUpdateLoop = function () {
   deltaTime = clock.getDelta();
   CreateScene();
   //TODO update physics
-  for (let i = 0; i<scene.children.length; i++) {
-    if (scene.children[0].name == "lightbulb") {
-      updatePhysics(deltaTime);
-      boidManager.setLightPoint(lightbulb.position); 
-    } 
+  for (let i = 0; i < scene.children.length; i++) {
+    if (lightbulb != null) {
+      //updatePhysics(deltaTime);
+    }
   }
-  console.log()
 
   renderer.render(scene, camera);
 
