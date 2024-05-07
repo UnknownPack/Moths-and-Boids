@@ -9,6 +9,7 @@ export class InteractionHandler{
         this.renderer = renderer;
         this.orbitControls = orbitControls;
         const controls = new DragControls(this.draggedObjects, camera, renderer.domElement);
+        controls.transformGroup = true;
         
         controls.addEventListener( 'dragstart', ( event ) => {
             // this.orbitControls.enabled = false;
