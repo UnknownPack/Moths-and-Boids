@@ -48,6 +48,7 @@ function init() {
   initPhysics();
   createObjects();
   initInput();
+  console.log(document.scene.children);
   initSky();
 }
 
@@ -85,6 +86,8 @@ function initGraphics() {
   //                 right  click to pan
   // add the new control and link to the current camera to transform its position
   controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableRotate = false;
+  controls.enablePan = false;
 }
 
 function initPhysics() {
