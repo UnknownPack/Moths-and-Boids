@@ -51,7 +51,7 @@ export class Boid{
         // I will use spheres to represent the moth
     
         this.boidMesh = new THREE.Mesh(geometry, material);
-        this.boidMesh.scale.set(1,1,1);
+        this.boidMesh.scale.set(0.1,0.1,0.1);
         this.boidMesh.position.copy(this.position);
     } 
     
@@ -154,6 +154,10 @@ export class Boid{
 
     updateSpatialKey(spatialKey){
         this.spatialKey = spatialKey;
+    }
+
+    giveLightPoint(){
+        return this.lightPoint;
     }
 
     giveSpatialKey(){

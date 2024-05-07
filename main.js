@@ -490,7 +490,7 @@ function initComputeRenderer() {
 // Create boid manager
 //these paramters can be changed
 
-const numberOfBoids = 150;
+const numberOfBoids = 1000;
 const obstacles = [];
 const velocity = 0.5;
 const maxSpeed = 0.1;
@@ -516,7 +516,7 @@ var MyUpdateLoop = function () {
 
   renderer.render(scene, camera);
 
-
+  //boidManager.setLightPoint(lightPoint);
   boidManager.updateBoids(deltaTime);
 
   // - Orbit Controls - 
