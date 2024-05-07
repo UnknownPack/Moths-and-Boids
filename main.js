@@ -41,13 +41,13 @@ Ammo().then(function (AmmoLib) {
 });
 
 function init() {
-
   initGraphics();
   initPhysics();
   createObjects();
   initInput();
   initSky();
 }
+
 
 function initGraphics() {
   var ratio = window.innerWidth / window.innerHeight;
@@ -101,30 +101,32 @@ function initPhysics() {
   transformAux1 = new Ammo.btTransform();
 
 }
+
+
 let sky, sun, elevation, azimuth, phi, theta, uniforms;
 function initSky(){
   sky = new Sky();
-	sky.scale.setScalar( 450000 );
+	sky.scale.setScalar( 4500 ); //450000 
 	scene.add( sky );
   sun = new THREE.Vector3();
 
   uniforms = sky.material.uniforms;
-  renderer.toneMappingExposure = 0.2; // 0-1
-  uniforms[ 'turbidity' ].value = 0; // 0-20
-  uniforms[ 'rayleigh' ].value = 0.147; //0-4
-	uniforms[ 'mieCoefficient' ].value = 0.023; // 0-0.1
-	uniforms[ 'mieDirectionalG' ].value = 0.7; //0-1
+  renderer.toneMappingExposure = 0.4; // 0-1
+  uniforms[ 'turbidity' ].value = 5; // 0-20
+  uniforms[ 'rayleigh' ].value = 3; //0-4
+	uniforms[ 'mieCoefficient' ].value = 0.033; // 0-0.1
+	uniforms[ 'mieDirectionalG' ].value = 0.63; //0-1
 
   updateSky(0);
 }
 function updateSky(time){
-  const elevation = 2 + 60 * Math.sin(Math.PI * time); // 0-90
-  const azimuth = 2* 180 * time; //-180 - 180
+  const elevation = time * 180; //
+  const azimuth = 30; //-180 - 180
   const phi = THREE.MathUtils.degToRad( 90 - elevation );
 	const theta = THREE.MathUtils.degToRad( azimuth );
   sun.setFromSphericalCoords( 1, phi, theta );
   uniforms[ 'sunPosition' ].value.copy( sun );
-  renderer.toneMappingExposure += time/10;
+  //renderer.toneMappingExposure += time/10;
 
 }
 function resetSky(){
@@ -348,7 +350,7 @@ function createRigidBody(threeObject, physicsShape, mass, pos, quat) {
 }
 
 let lastSkyUpdate = 0;
-const updateInterval = 1000;
+const updateInterval = 10;
 let elapsedTime = 0;
 function animate() {
   requestAnimationFrame(animate);
@@ -358,8 +360,8 @@ function animate() {
   const now = performance.now();
   const delta = clock.getDelta();
   elapsedTime += delta;
-  const totalDayTime = 300;
-  const timeOfDay = (elapsedTime % totalDayTime) / totalDayTime;
+  const totalDayTime = 10;
+  const timeOfDay = (elapsedTime % totalDayTime) / totalDayTime; // 0-1
   if(elapsedTime >= totalDayTime){
     resetSky();
     elapsedTime %= totalDayTime;
