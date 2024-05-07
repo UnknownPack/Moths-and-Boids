@@ -91,10 +91,13 @@ export class BoidManager {
 
             if (distanceToLight > this.minDistance_toLight) {
                 boid.applyForce(lightAttractionForce, deltaTime);
-            } else if (distanceToLight <= this.minDistance_toLight) {
+            } 
+            /*
+            else if (distanceToLight <= this.minDistance_toLight) {
                 const repulsionForce = lightAttractionForce.clone().negate();
                 boid.applyForce(repulsionForce, deltaTime);
             }
+            */
             boid.applyForce(avoidanceForce, deltaTime);
 
             boid.update();
