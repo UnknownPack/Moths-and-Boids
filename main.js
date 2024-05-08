@@ -165,9 +165,9 @@ function createObjects() {
 
   // LIGHTBULB
   const bulbMass = 10;
-  const bulbRadius = 0.6;
-  const pos = new THREE.Vector3(0, 0, bulbRadius);
-  const quat = new THREE.Quaternion();
+  const bulbRadius = 0.5;
+  const pos = new THREE.Vector3(0, 0, 0);
+  const quat = new THREE.Quaternion( 0, 0, 0, 1 );
 
   // create lamp group
   let fullLampGroup = new THREE.Group();
@@ -175,8 +175,14 @@ function createObjects() {
   fullLampGroup.position.y = 4;
   fullLampGroup.position.z = 0;
   createLightBase(fullLampGroup, bulbRadius, quat);
-    // light model
+  // light model
   lightbulb = makeBulbGroup();
+    // creates a sphere as a temporary reference for light bulb interaction 
+  // const lightbulb_geometry = new THREE.SphereGeometry(bulbRadius);
+  // const lightbulb_material = new THREE.MeshPhongMaterial({ color: 0xfddc5c, transparent: true });
+  // const lightbulb = new THREE.Mesh(lightbulb_geometry, lightbulb_material);
+  lightbulb.position.y = pos.y;
+  lightbulb.position.z = pos.z;
   lightbulb.scale.set(0.5, 0.5, 0.5);
   lightbulb.name = "lightbulb";
 
@@ -185,9 +191,8 @@ function createObjects() {
   boidManager.setLightPoint(lightPoint);
 
   // bulb physics 
-  const bulbShape = new Ammo.btSphereShape(bulbRadius);
-  bulbShape.setMargin(margin);
-  console.log(lightbulb.position);
+  const bulbShape = new Ammo.btSphereShape(bulbRadius*0.5);
+  bulbShape.setMargin(margin - 0.3);
   createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
   lightbulb.userData.physicsBody.setFriction(0.5);
 
@@ -195,32 +200,12 @@ function createObjects() {
   let ropeSoftBody;
   const ropeNumSegments = 10;
   const ropeLength = 4;
-  ropeSoftBody = createRope(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, fullLampGroup, bulbRadius);
-
-  // Glue the rope extremes to the ball and the arm
-  const influence = 1;
-  ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
-  ropeSoftBody.appendAnchor(ropeLength, base.userData.physicsBody, true, influence);
-  //});
-
-
-  // creates a sphere as a temporary reference for light bulb interaction 
-  // const lightbulb_geometry = new THREE.SphereGeometry(bulbRadius);
-  // const lightbulb_material = new THREE.MeshPhongMaterial({ color: 0xfddc5c, transparent: true });
-  // const lightbulb = new THREE.Mesh(lightbulb_geometry, lightbulb_material);
-  // lightbulb.name = "lightbulb";
-  // lightbulb.position.y = pos.y;
-  // lightbulb.position.z = pos.z;
-
-  // Hinge constraint to move the arm
-  // const pivotA = new Ammo.btVector3(0, ropePos.y * 0.5, 0);
-  //const pivotB = new Ammo.btVector3(0, - 0.2, - armLength * 0.5);
-  // const axis = new Ammo.btVector3(0, 1, 0);
-  // hinge = new Ammo.btHingeConstraint(pylon.userData.physicsBody, arm.userData.physicsBody, pivotA, pivotB, axis, axis, true);
-  // physicsWorld.addConstraint(hinge, true);
+  ropeSoftBody = createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, fullLampGroup, bulbRadius);
 }
 
 function makeBulbGroup() {
+  var yTranslation = 1.2;
+
   var group = new THREE.Group();
   const intensity = 3.0;
   //main bulb
@@ -234,7 +219,7 @@ function makeBulbGroup() {
   });
 
   bulbLight.add(new THREE.Mesh(bulbGeometry, bulbMat));
-  bulbLight.position.set(0, -1, 0);
+  bulbLight.position.set(0, -1+yTranslation, 0);
   bulbLight.castShadow = true;
 
   var d = 200;
@@ -257,7 +242,7 @@ function makeBulbGroup() {
   });
 
   var bStem = new THREE.Mesh(bulbStem, stemMat);
-  bStem.position.set(0, -0.1, 0);
+  bStem.position.set(0, -0.1+yTranslation, 0);
   bStem.castShadow = true;
   bStem.receiveShadow = true;
 
@@ -269,7 +254,7 @@ function makeBulbGroup() {
   });
 
   var plug = new THREE.Mesh(bulbPlug, plugMat);
-  plug.position.set(0, 0.2, 0);
+  plug.position.set(0, 0.2+yTranslation, 0);
   plug.receiveShadow = true;
   plug.castShadow = true;
 
@@ -280,7 +265,7 @@ function makeBulbGroup() {
     color: 0xe8d905
   });
   var plugTop = new THREE.Mesh(topGeo, topMat);
-  plugTop.position.set(0, 0.75, 0);
+  plugTop.position.set(0, 0.75+yTranslation, 0);
   plugTop.receiveShadow = true;
   plugTop.castShadow = true;
 
@@ -295,7 +280,7 @@ function makeBulbGroup() {
   for (var i = 0; i < 3; i++) {
     var ring = new THREE.Mesh(ringGeo, ringMat);
     ring.rotation.x = -Math.PI / 2;
-    ring.position.set(0, ringY, 0);
+    ring.position.set(0, ringY+yTranslation, 0);
     group.add(ring);
 
     ringY += 0.15;
@@ -305,14 +290,14 @@ function makeBulbGroup() {
   var topRingGeo = new THREE.TorusGeometry(0.49, 0.05, 16, 100);
 
   var topRing = new THREE.Mesh(topRingGeo, ringMat);
-  topRing.position.set(0, 0.75, 0);
+  topRing.position.set(0, 0.75+yTranslation, 0);
   topRing.rotation.x = -Math.PI / 2;
 
   //bottom ring
   var botRingGeo = new THREE.TorusGeometry(0.5, 0.05, 16, 100);
 
   var botRing = new THREE.Mesh(botRingGeo, ringMat);
-  botRing.position.set(0, 0.15, 0);
+  botRing.position.set(0, 0.15+yTranslation, 0);
   botRing.rotation.x = -Math.PI / 2;
 
   //add to group
@@ -324,19 +309,21 @@ function makeBulbGroup() {
   group.add(topRing);
 
   // group position
+  group.position.x = 0;
   group.position.y = 0;
   group.position.z = 0;
-  group.position.x = 0;
 
   return group;
 }
 
-function createRope(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group, bulbRadius) {
+function createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group, bulbRadius) {
   // ROPE
   // creates rope graphic object
   const ropeMass = 5;
   const ropePos = (lightbulb.position);
-  ropePos.y = bulbRadius - 1 - ropeLength;
+  ropePos.x = 0;
+  ropePos.y = 5 - ropeLength;
+  ropePos.z = 0;
 
   const segmentLength = ropeLength / ropeNumSegments;
   const ropeGeometry = new THREE.BufferGeometry();
@@ -362,8 +349,8 @@ function createRope(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group,
   rope = new THREE.LineSegments(ropeGeometry, ropeMaterial);
   rope.castShadow = true;
   rope.receiveShadow = true;
-  rope.add(lightbulb);
-  base.add(rope);
+  group.add(lightbulb);
+  group.add(rope);
   group.add(base);
   scene.add(group);
 
@@ -379,8 +366,22 @@ function createRope(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group,
   Ammo.castObject(ropeSoftBody, Ammo.btCollisionObject).getCollisionShape().setMargin(margin * 3);
   physicsWorld.addSoftBody(ropeSoftBody, 1, - 1);
   rope.userData.physicsBody = ropeSoftBody;
+
   // Disable deactivation
   ropeSoftBody.setActivationState(4);
+
+  // Hinge constraint to move the arm
+  // const pivotA = new Ammo.btVector3(0, ropePos.y * 0.5, 0);
+  // const pivotB = new Ammo.btVector3(0, - 0.2, - armLength * 0.5);
+  // const axis = new Ammo.btVector3(0, 1, 0);
+  // hinge = new Ammo.btHingeConstraint(pylon.userData.physicsBody, arm.userData.physicsBody, pivotA, pivotB, axis, axis, true);
+  // physicsWorld.addConstraint(hinge, true);
+
+    // Glue the rope extremes to the ball and the arm
+    const influence = 1;
+    ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
+    ropeSoftBody.appendAnchor(ropeNumSegments, base.userData.physicsBody, true, influence);
+
   return ropeSoftBody;
 }
 
@@ -403,17 +404,6 @@ function createLightBase(group, bulbRadius, quat) {
   const interactionHandler = new InteractionHandler(camera, renderer);
   interactionHandler.addDragObject(group);
 }
-
-function createParalellepiped(sx, sy, sz, mass, pos, quat, material) {
-  const threeObject = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz, 1, 1, 1), material);
-  const shape = new Ammo.btBoxShape(new Ammo.btVector3(sx * 0.5, sy * 0.5, sz * 0.5));
-  shape.setMargin(margin);
-
-  createRigidBody(threeObject, shape, mass, pos, quat);
-
-  return threeObject;
-}
-
 
 function initInput() {
   // create new raycaster to track position of mouse
@@ -606,16 +596,17 @@ boidManager.setLightPoint(lightPoint);
 //final update loop
 let clock = new THREE.Clock();
 var deltaTime;
+
 var MyUpdateLoop = function () {
   deltaTime = clock.getDelta();
   CreateScene();
   //TODO update physics
   for (let i = 0; i < scene.children.length; i++) {
     if (lightbulb != null) {
-      //updatePhysics(deltaTime);
+      updatePhysics(deltaTime);
     }
   }
-
+  //render()
   renderer.render(scene, camera);
 
 
