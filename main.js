@@ -25,10 +25,10 @@ let hinge;
 let base;
 let rope;
 let lightbulb;
-let lightPoint = new THREE.Vector3(0, 0, 3);
+let lightPoint = new THREE.Vector3(0, 5, 3);
 let transformAux1;
 
-let armMovement = 0;
+//let armMovement = 0;
 
 // Inits physics environment
 Ammo().then(function (AmmoLib) {
@@ -48,6 +48,7 @@ function init() {
   createObjects();
   initInput();
   initSky();
+  // DEBUGGING
   console.log(scene.children);
 }
 
@@ -68,8 +69,8 @@ function initGraphics() {
   // Creates the renderer
   renderer = new THREE.WebGLRenderer();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  //renderer.shadowMap.enabled = true;
-  //renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.setPixelRatio(window.devicePixelRatio * 0.5);
   //for sky 
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -92,7 +93,6 @@ function initGraphics() {
 function initPhysics() {
 
   // Physics configuration
-
   collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
   dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
   broadphase = new Ammo.btDbvtBroadphase();
@@ -105,7 +105,9 @@ function initPhysics() {
   transformAux1 = new Ammo.btTransform();
 
 }
+
 let sky, sun, elevation, azimuth, phi, theta, uniforms;
+
 function initSky() {
   sky = new Sky();
   sky.scale.setScalar(450000);
@@ -166,51 +168,40 @@ function createObjects() {
   const bulbRadius = 0.6;
   const pos = new THREE.Vector3(0, 0, bulbRadius);
   const quat = new THREE.Quaternion();
-  // light model
-  const loader = new GLTFLoader().setPath('models/ceilling_lamp/');
-  loader.load('scene.gltf', (gltf) => {
-    let group = new THREE.Group();
-    createLightBase(group, bulbRadius, quat);
-    lightbulb = gltf.scene;
-    lightbulb.position.set(0, 0, 0);
-    lightbulb.rotation.x = Math.PI;
-    lightbulb.scale.set(0.1, 0.1, 0.1);
-    lightbulb.name = "lightbulb";
-    let lightbulbMaterial = new THREE.MeshPhysicalMaterial();
-    lightbulbMaterial.emissive.setHex(0xfddc5c);
-    lightbulbMaterial.transmission = 1.0;
-    lightbulb.children[0].children[0].children[8].material = lightbulbMaterial;
-    lightbulb.children[0].children[0].children[0].visible = false;
-    lightbulb.children[0].children[0].children[2].visible = false;
-    lightbulb.children[0].children[0].children[3].visible = false;
-    lightbulb.children[0].children[0].children[4].visible = false;
-    lightbulb.children[0].children[0].children[5].visible = false;
 
-    lightPoint = group.position;
-    // bulb physics 
-    //assign the light's position as the lightPoint that the boids will be attracted to
-    boidManager.setLightPoint(lightPoint);
+  // create lamp group
+  let fullLampGroup = new THREE.Group();
+  fullLampGroup.position.x = -6;
+  fullLampGroup.position.y = 4;
+  fullLampGroup.position.z = 0;
+  createLightBase(fullLampGroup, bulbRadius, quat);
+    // light model
+  lightbulb = makeBulbGroup();
+  lightbulb.scale.set(0.5, 0.5, 0.5);
+  lightbulb.name = "lightbulb";
 
-    const bulbShape = new Ammo.btSphereShape(bulbRadius);
-    bulbShape.setMargin(margin);
-    console.log(lightbulb.position);
-    createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
-    lightbulb.userData.physicsBody.setFriction(0.5);
+  //assign the light's position as the lightPoint that the boids will be attracted to
+  lightPoint = fullLampGroup.position;
+  boidManager.setLightPoint(lightPoint);
 
-    // creates the pointlight of the swinging light
-    const light = new THREE.PointLight(0xFFFFED, 1, 100);
-    lightbulb.add(light);
+  // bulb physics 
+  const bulbShape = new Ammo.btSphereShape(bulbRadius);
+  bulbShape.setMargin(margin);
+  console.log(lightbulb.position);
+  createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
+  lightbulb.userData.physicsBody.setFriction(0.5);
 
-    let ropeSoftBody;
-    const ropeNumSegments = 10;
-    const ropeLength = 4;
-    ropeSoftBody = createRope(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group, bulbRadius);
 
-    // Glue the rope extremes to the ball and the arm
-    const influence = 1;
-    ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
-    ropeSoftBody.appendAnchor(ropeLength, base.userData.physicsBody, true, influence);
-  });
+  let ropeSoftBody;
+  const ropeNumSegments = 10;
+  const ropeLength = 4;
+  ropeSoftBody = createRope(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, fullLampGroup, bulbRadius);
+
+  // Glue the rope extremes to the ball and the arm
+  const influence = 1;
+  ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
+  ropeSoftBody.appendAnchor(ropeLength, base.userData.physicsBody, true, influence);
+  //});
 
 
   // creates a sphere as a temporary reference for light bulb interaction 
@@ -227,6 +218,117 @@ function createObjects() {
   // const axis = new Ammo.btVector3(0, 1, 0);
   // hinge = new Ammo.btHingeConstraint(pylon.userData.physicsBody, arm.userData.physicsBody, pivotA, pivotB, axis, axis, true);
   // physicsWorld.addConstraint(hinge, true);
+}
+
+function makeBulbGroup() {
+  var group = new THREE.Group();
+  const intensity = 3.0;
+  //main bulb
+  var bulbGeometry = new THREE.SphereGeometry(1, 32, 32);
+  var bulbLight = new THREE.PointLight(0xffee88, 1, 100, 2);
+  var bulbMat = new THREE.MeshStandardMaterial({
+    emissive: 0xffffee,
+    emissiveIntensity: intensity,
+    color: 0xffffee,
+    roughness: 0.2
+  });
+
+  bulbLight.add(new THREE.Mesh(bulbGeometry, bulbMat));
+  bulbLight.position.set(0, -1, 0);
+  bulbLight.castShadow = true;
+
+  var d = 200;
+
+  bulbLight.shadow.camera.left = -d;
+  bulbLight.shadow.camera.right = d;
+  bulbLight.shadow.camera.top = d;
+  bulbLight.shadow.camera.bottom = -d;
+
+  bulbLight.shadow.camera.far = 100;
+
+  //stem
+  var bulbStem = new THREE.CylinderGeometry(0.5, 0.65, 0.55, 32);
+  var stemMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0xffffee,
+    emissiveIntensity: intensity,
+    metalness: 0.8,
+    roughness: 0
+  });
+
+  var bStem = new THREE.Mesh(bulbStem, stemMat);
+  bStem.position.set(0, -0.1, 0);
+  bStem.castShadow = true;
+  bStem.receiveShadow = true;
+
+  //plug main
+  var bulbPlug = new THREE.CylinderGeometry(0.52, 0.52, 1.2, 32);
+
+  var plugMat = new THREE.MeshStandardMaterial({
+    color: 0x807d7a
+  });
+
+  var plug = new THREE.Mesh(bulbPlug, plugMat);
+  plug.position.set(0, 0.2, 0);
+  plug.receiveShadow = true;
+  plug.castShadow = true;
+
+  //plug top
+  var topGeo = new THREE.CylinderGeometry(0.25, 0.3, 0.2, 32);
+
+  var topMat = new THREE.MeshStandardMaterial({
+    color: 0xe8d905
+  });
+  var plugTop = new THREE.Mesh(topGeo, topMat);
+  plugTop.position.set(0, 0.75, 0);
+  plugTop.receiveShadow = true;
+  plugTop.castShadow = true;
+
+  //plug rings
+  var ringGeo = new THREE.TorusGeometry(0.52, 0.04, 4, 100);
+
+  var ringMat = new THREE.MeshStandardMaterial({
+    color: 0x807d7a
+  });
+
+  var ringY = 0.33;
+  for (var i = 0; i < 3; i++) {
+    var ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(0, ringY, 0);
+    group.add(ring);
+
+    ringY += 0.15;
+  }
+
+  //top ring
+  var topRingGeo = new THREE.TorusGeometry(0.49, 0.05, 16, 100);
+
+  var topRing = new THREE.Mesh(topRingGeo, ringMat);
+  topRing.position.set(0, 0.75, 0);
+  topRing.rotation.x = -Math.PI / 2;
+
+  //bottom ring
+  var botRingGeo = new THREE.TorusGeometry(0.5, 0.05, 16, 100);
+
+  var botRing = new THREE.Mesh(botRingGeo, ringMat);
+  botRing.position.set(0, 0.15, 0);
+  botRing.rotation.x = -Math.PI / 2;
+
+  //add to group
+  group.add(bStem);
+  group.add(bulbLight);
+  group.add(plug);
+  group.add(plugTop);
+  group.add(botRing);
+  group.add(topRing);
+
+  // group position
+  group.position.y = 0;
+  group.position.z = 0;
+  group.position.x = 0;
+
+  return group;
 }
 
 function createRope(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group, bulbRadius) {
@@ -288,8 +390,8 @@ function createLightBase(group, bulbRadius, quat) {
   const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xA9A9A9 });
   base = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.2, 32), baseMaterial);
   base.position.x = 0;
-  base.position.y = 4;
-  base.position.z = 5;
+  base.position.y = 5;
+  base.position.z = 0;
   base.castShadow = true;
   base.receiveShadow = true;
   const baseShape = new Ammo.btBoxShape(bulbRadius);
