@@ -4,14 +4,15 @@ import { spatialGrid } from './SpatialPartition.js';
 import { OBJLoader } from './build/loaders/OBJLoader.js';
 import { MTLLoader } from './build/loaders/MTLLoader.js';
 import { GLTFLoader } from './build/loaders/GLTFLoader.js';
+import { obstacle } from './obstacle.js'; 
+
 
 export class BoidManager {
-    constructor(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene) {
+    constructor(numberOfBoids, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene) {
         this.numberOfBoids = numberOfBoids;
         this.scene = scene;
         this.boids = [];
-        this.obstacles = obstacles;
-
+        this.obstacles = [];
         this.velocity = velocity;
         this.maxSpeed = maxSpeed;
         this.maxForce = maxForce;
@@ -19,7 +20,7 @@ export class BoidManager {
         this.lightPoint = null;
         this.lightAttraction = lightAttraction;
         this.spawnRadius = spawnRadius;
-        this.minDistance_toLight = 5;
+        this.minDistance_toLight = 2.5;
         this.targetMinDistance_toLight = this.getRandomInt(3, 10); // Initializing with a random target initially
 
         const gridSize = new THREE.Vector3(30, 30, 30);
@@ -36,11 +37,24 @@ export class BoidManager {
                     this.mothGeometry = child.geometry;
                     this.mothMaterial = child.material;
                     this.makeBoids();
+                    this.initializeObstacles();
                 }
             });
         }, null, (error) => {
             console.error('An error happened during GLTF loading:', error);
         });
+        
+    }
+
+    initializeObstacles() {
+        const num_OfObstacles = 15;
+        for (let i = 0; i < num_OfObstacles; i++) {
+            let pos = new THREE.Vector3(this.getRandomFloat(-7, 7), this.getRandomFloat(-7, 7), this.getRandomFloat(-7, 7));
+            let newObstacle = new obstacle(pos, this.scene);
+            this.obstacles.push(newObstacle);
+            this.grid.insertBoidAtPosition(newObstacle, newObstacle.givePos());
+            console.log('Obstacle added to scene at', pos);
+        }
     }
 
     makeBoids() {
@@ -108,7 +122,14 @@ export class BoidManager {
         if (Math.random() < 0.1) { // 10% chance to update the target distance every update
             this.targetMinDistance_toLight = this.getRandomInt(3, 10);
         }
+
+        for (const obstacle of this.obstacles){
+            this.grid.insertBoidAtPosition(obstacle, obstacle.position);
+        }
+        console.log(this.obstacles.length);
     }
+
+    
 
     setLightPoint(lightPoint) {   
         this.lightPoint = lightPoint;
@@ -120,13 +141,20 @@ export class BoidManager {
             ///var boidLightPoint = lightPoint.copy();  
             //boidLightPoint.add(futurePower);  
             //this.lightPoint
-            boid.setLightPoint(boidLightPoint);
+            boid.setLightPoint(lightPoint);
         }
     }
-    
 
-    addObjectToGrid(object) {
-        this.otherObjects.add(object);
+    getLightPoint(){
+        return this.lightPoint;
+    }
+
+    setObstacleList(obstacles){
+        this.obstacles = obstacles;
+    }
+
+    insertObstacle(obj){
+        this.grid.insertBoidAtPosition(obj, obj.position)
     }
 
     getRandomInt(min, max) {

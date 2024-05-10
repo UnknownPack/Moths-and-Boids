@@ -118,24 +118,26 @@ export class Boid{
     
     avoidanceBehaviour(obstacles) {
         let avoidanceForce = new THREE.Vector3();
-        const maxAvoidanceForce = 0.05;
+        const maxAvoidanceForce = 0.5;
     
         for (let obstacle of obstacles) {  
             if (obstacle !== this) { 
-                var distance = this.position.distanceTo(obstacle.position);  
+                var distance = this.position.distanceTo(obstacle.position);
                 if (distance < this.searchRadius) {  
-                    var direction = new THREE.Vector3().subVectors(this.position, obstacle.position).normalize(); 
-                    avoidanceForce.add(direction);  
+                    var direction = new THREE.Vector3().subVectors(this.position, obstacle.position).normalize();
+                    let weight = 1 - (distance / this.searchRadius);  // Normalized weight
+                    avoidanceForce.add(direction.multiplyScalar(weight));
                 }
             }
         }
         
-        if (avoidanceForce.length() > maxAvoidanceForce) {
-            avoidanceForce.normalize().multiplyScalar(maxAvoidanceForce);
-        }
-    
-        // Quaternion rotation to lean back from obstacles
+        // Normalize and apply the max avoidance force if the avoidanceForce vector is not zero
         if (!avoidanceForce.equals(new THREE.Vector3(0, 0, 0))) {
+            if (avoidanceForce.length() > maxAvoidanceForce) {
+                avoidanceForce.normalize().multiplyScalar(maxAvoidanceForce);
+            }
+    
+            // Quaternion rotation to lean back from obstacles
             const currentDirection = new THREE.Vector3(0, 0, 1);  // Assuming the backward direction
             const targetDirection = avoidanceForce.clone().normalize();
             const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
@@ -144,6 +146,7 @@ export class Boid{
     
         return avoidanceForce;
     }
+    
 
 
 

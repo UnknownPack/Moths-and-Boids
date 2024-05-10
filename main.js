@@ -490,15 +490,14 @@ function initComputeRenderer() {
 // Create boid manager
 //these paramters can be changed
 
-const numberOfBoids = 1000;
-const obstacles = [];
+const numberOfBoids = 1000; 
 const velocity = 0.5;
 const maxSpeed = 0.1;
 const maxForce = 0.1;
-const searchRadius = 3;
+const searchRadius = 2;
 const lightAttraction = 1000;
 const spawnRadius = 20;
-const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene);
+const boidManager = new BoidManager(numberOfBoids , velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene);
 boidManager.setLightPoint(lightPoint);
 
 //final update loop
@@ -514,9 +513,7 @@ var MyUpdateLoop = function () {
     }
   }
 
-  renderer.render(scene, camera);
-
-  //boidManager.setLightPoint(lightPoint);
+  renderer.render(scene, camera); 
   boidManager.updateBoids(deltaTime);
 
   // - Orbit Controls - 
