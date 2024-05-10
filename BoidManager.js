@@ -108,13 +108,7 @@ export class BoidManager {
         if (Math.random() < 0.1) { // 10% chance to update the target distance every update
             this.targetMinDistance_toLight = this.getRandomInt(3, 10);
         }
-
-        for (const obstacle of this.obstacles){
-            this.grid.insertBoidAtPosition(obstacle, obstacle.position);
-        }
     }
-
-    
 
     setLightPoint(lightPoint) {   
         this.lightPoint = lightPoint;
@@ -129,17 +123,10 @@ export class BoidManager {
             boid.setLightPoint(boidLightPoint);
         }
     }
+    
 
-    getLightPoint(){
-        return this.lightPoint;
-    }
-
-    setObstacleList(obstacles){
-        this.obstacles = obstacles;
-    }
-
-    insertObstacle(obj){
-        this.grid.insertBoidAtPosition(obj, obj.position)
+    addObjectToGrid(object) {
+        this.otherObjects.add(object);
     }
 
     getRandomInt(min, max) {

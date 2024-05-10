@@ -87,13 +87,13 @@ export class Boid{
     
     
     attractionToLight() {
-        let leepgot;  
+        let lightAttractionForce;  
     
         if (!this.lightPoint) return new THREE.Vector3(0, 0, 0);  
     
         if (this.lightAttraction > 0) {
-            leepgot = new THREE.Vector3().subVectors(this.lightPoint, this.position);
-            leepgot.multiplyScalar(this.lightAttraction);
+            lightAttractionForce = new THREE.Vector3().subVectors(this.lightPoint, this.position);
+            lightAttractionForce.multiplyScalar(this.lightAttraction);
             
             // Quaternion rotation towards light
             if (!lightAttractionForce.equals(new THREE.Vector3(0, 0, 0))) {
@@ -105,7 +105,7 @@ export class Boid{
         } 
         
         else if (this.lightAttraction <= 0) {
-            leepgot = new THREE.Vector3(
+            lightAttractionForce = new THREE.Vector3(
                 this.getRandomFloat(0.01, 1), 
                 this.getRandomFloat(0.01, 1), 
                 this.getRandomFloat(0.01, 1)
