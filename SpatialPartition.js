@@ -18,51 +18,48 @@ export class spatialGrid{
     }
 
     insertBoidAtPosition(boid, position) {
-        // Calculate the cell indices based on the position.
         const x = Math.floor(position.x / this.cellSize);
         const y = Math.floor(position.y / this.cellSize);
         const z = Math.floor(position.z / this.cellSize);
     
-        // Generate the cell's unique key.
         const key = this._cellKey(x, y, z);
     
-        // Initialize the cell's array if it doesn't already exist.
         if (!this.cells[key]) {
             this.cells[key] = [];
         }
     
-        // Add the boid to the cell.
-        this.cells[key].push(boid);
+        // Debug: Log if a boid is added more than once or to multiple cells
+        console.log(`Inserting boid at ${key}. Current cell count: ${this.cells[key].length}`);
+        if (this.cells[key].includes(boid)) {
+            console.log("Warning: Boid already exists in this cell.");
+        }
     
-        // Additionally, set the boid's spatialKey to the cell key for easy reference.
+        this.cells[key].push(boid);
         boid.updateSpatialKey(key);
     }
-
-    getBoidsInAdjacentCellsByKey(spatialKey) {
-        // Initialize an array to hold all nearby boids
-        let nearbyBoids = [];
     
-        // Parse the spatialKey to get x, y, z indices of the cell
+    getBoidsInAdjacentCellsByKey(spatialKey) {
+        let nearbyBoids = [];
         const [x, y, z] = spatialKey.split("_").map(Number);
     
-        // Iterate over the target cell and its adjacent cells in all directions
+        console.log(`Checking adjacent cells for key: ${spatialKey}`);
+    
         for (let i = -1; i <= 1; i++) {
             for (let j = -1; j <= 1; j++) {
                 for (let k = -1; k <= 1; k++) {
-                    // Calculate the key for the current adjacent cell
                     const adjacentKey = this._cellKey(x + i, y + j, z + k);
-                    
-                    // If the cell exists, add its boids to the nearbyBoids array
                     if (this.cells[adjacentKey]) {
                         nearbyBoids = nearbyBoids.concat(this.cells[adjacentKey]);
+                        console.log(`Adding boids from cell ${adjacentKey}, count: ${this.cells[adjacentKey].length}`);
                     }
                 }
             }
         }
     
-        // Return the aggregated list of boids from the adjacent cells
+        console.log(`Total nearby boids counted: ${nearbyBoids.length}`);
         return nearbyBoids;
     }
+    
 
     clear() {
         // Reset the cells object, effectively clearing the grid.

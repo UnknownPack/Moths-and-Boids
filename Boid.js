@@ -93,7 +93,9 @@ export class Boid{
     
         if (this.lightAttraction > 0) {
             lightAttractionForce = new THREE.Vector3().subVectors(this.lightPoint, this.position);
-            lightAttractionForce.multiplyScalar(this.lightAttraction);
+            lightAttractionForce.normalize().multiplyScalar(this.lightAttraction).normalize();
+
+
             
             // Quaternion rotation towards light
             if (!lightAttractionForce.equals(new THREE.Vector3(0, 0, 0))) {
@@ -117,38 +119,49 @@ export class Boid{
     
     
     avoidanceBehaviour(obstacles) {
-        let avoidanceForce = new THREE.Vector3();
-        const maxAvoidanceForce = 0.5;
-    
-        for (let obstacle of obstacles) {  
-            if (obstacle !== this) { 
-                var distance = this.position.distanceTo(obstacle.position);
-                if (distance < this.searchRadius) {  
-                    var direction = new THREE.Vector3().subVectors(this.position, obstacle.position).normalize();
-                    let weight = 1 - (distance / this.searchRadius);  // Normalized weight
-                    avoidanceForce.add(direction.multiplyScalar(weight));
-                }
+    let sumDirections = new THREE.Vector3();
+    let count = 0;  // Counter for obstacles within search radius
+
+    for (let obstacle of obstacles) {
+        if (obstacle !== this) {
+            var distance = this.position.distanceTo(obstacle.position);
+            if (distance < this.searchRadius) {
+                var direction = new THREE.Vector3().subVectors(this.position, obstacle.position);
+                let weight = 1 - (distance / this.searchRadius);  // Normalized weight
+                sumDirections.add(direction.multiplyScalar(weight));
+                count++;
             }
         }
-        
+    }
+
+    if (count > 0) {
+        let avoidanceForce = sumDirections.divideScalar(count);  // Calculate the average direction
+        avoidanceForce.negate();  // Get the opposite direction
+
         // Normalize and apply the max avoidance force if the avoidanceForce vector is not zero
         if (!avoidanceForce.equals(new THREE.Vector3(0, 0, 0))) {
-            if (avoidanceForce.length() > maxAvoidanceForce) {
-                avoidanceForce.normalize().multiplyScalar(maxAvoidanceForce);
+            if (avoidanceForce.length() > this.maxAvoidanceForce) {
+                avoidanceForce.normalize().multiplyScalar(this.maxAvoidanceForce);
             }
-    
+
             // Quaternion rotation to lean back from obstacles
-            const currentDirection = new THREE.Vector3(0, 0, 1);  // Assuming the backward direction
+            const currentDirection = new THREE.Vector3(0, 0, 1);  // Assuming the forward direction is z
             const targetDirection = avoidanceForce.clone().normalize();
             const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
             this.boidMesh.quaternion.slerp(quaternionTarget, 0.05); // Adjust the factor as needed
         }
-    
+
         return avoidanceForce;
     }
-    
+    else if(count == 0){
+        console.log("no count");
+    }
+    else{
+        console.log("no avoidance force");
+    }
 
-
+    return new THREE.Vector3(); // Return zero vector if no obstacles within range
+}
 
     setLightPoint(point){
         this.lightPoint = point;
@@ -185,13 +198,5 @@ export class Boid{
         return 2 * t * t;
     } else {
         return -1 + (4 - 2 * t) * t;
-    }
-
-    function* test() {
-        console.log('Hello!');
-        var x = yield;
-        console.log('First I got: ' + x);
-        var y = yield;
-        console.log('Then I got: ' + y);
-    }
+    } 
 }

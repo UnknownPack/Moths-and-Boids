@@ -20,11 +20,11 @@ export class BoidManager {
         this.lightPoint = null;
         this.lightAttraction = lightAttraction;
         this.spawnRadius = spawnRadius;
-        this.minDistance_toLight = 2.5;
+        this.minDistance_toLight = 1;
         this.targetMinDistance_toLight = this.getRandomInt(3, 10); // Initializing with a random target initially
 
         const gridSize = new THREE.Vector3(30, 30, 30);
-        const cellSize = 0.5;
+        const cellSize = 1;
         this.grid = new spatialGrid(gridSize, cellSize);
 
         const gltfLoader = new GLTFLoader();
@@ -37,7 +37,7 @@ export class BoidManager {
                     this.mothGeometry = child.geometry;
                     this.mothMaterial = child.material;
                     this.makeBoids();
-                    this.initializeObstacles();
+                    //this.initializeObstacles();
                 }
             });
         }, null, (error) => {
@@ -53,7 +53,6 @@ export class BoidManager {
             let newObstacle = new obstacle(pos, this.scene);
             this.obstacles.push(newObstacle);
             this.grid.insertBoidAtPosition(newObstacle, newObstacle.givePos());
-            console.log('Obstacle added to scene at', pos);
         }
     }
 
@@ -90,11 +89,13 @@ export class BoidManager {
         this.minDistance_toLight += (this.targetMinDistance_toLight - this.minDistance_toLight) * 0.1; // Interpolation rate of 10%
 
         for (const boid of this.boids) {
-            const spatialKey = boid.giveSpatialKey();
+            let postion = boid.givePos();
+            const spatialKey = this.grid._cellKey(postion.x,postion.y,postion.z);
             const nearbyBoids = this.grid.getBoidsInAdjacentCellsByKey(spatialKey);
 
             const lightAttractionForce = boid.attractionToLight();
             const avoidanceForce = boid.avoidanceBehaviour(nearbyBoids);
+            console.log(avoidanceForce);
             const randomMovement = new THREE.Vector3(
                 this.getRandomFloat(0.01, 1),
                 this.getRandomFloat(0.01, 1),

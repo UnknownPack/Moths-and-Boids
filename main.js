@@ -377,7 +377,7 @@ function createRigidBody(threeObject, physicsShape, mass, pos, quat) {
 }
 
 let lastSkyUpdate = 0;
-const updateInterval = 1000;
+const updateInterval = 50;
 let elapsedTime = 0;
 function animate() {
   requestAnimationFrame(animate);
