@@ -14,6 +14,10 @@ export class spatialGrid{
 
     // Generate a string key based on cell coordinates for identifying cells.
     _cellKey(x, y, z) {
+        // Clamp each coordinate to ensure it falls within the grid dimensions
+        x = Math.max(0, Math.min(x, this.dimensions.x - 1));
+        y = Math.max(0, Math.min(y, this.dimensions.y - 1));
+        z = Math.max(0, Math.min(z, this.dimensions.z - 1));
         return `${x}_${y}_${z}`;
     }
 
@@ -29,9 +33,9 @@ export class spatialGrid{
         }
     
         // Debug: Log if a boid is added more than once or to multiple cells
-        console.log(`Inserting boid at ${key}. Current cell count: ${this.cells[key].length}`);
+         //console.log(`Inserting boid at ${key}. Current cell count: ${this.cells[key].length}`);
         if (this.cells[key].includes(boid)) {
-            console.log("Warning: Boid already exists in this cell.");
+             //console.log("Warning: Boid already exists in this cell.");
         }
     
         this.cells[key].push(boid);
@@ -42,21 +46,20 @@ export class spatialGrid{
         let nearbyBoids = [];
         const [x, y, z] = spatialKey.split("_").map(Number);
     
-        console.log(`Checking adjacent cells for key: ${spatialKey}`);
-    
         for (let i = -1; i <= 1; i++) {
             for (let j = -1; j <= 1; j++) {
                 for (let k = -1; k <= 1; k++) {
-                    const adjacentKey = this._cellKey(x + i, y + j, z + k);
-                    if (this.cells[adjacentKey]) {
-                        nearbyBoids = nearbyBoids.concat(this.cells[adjacentKey]);
-                        console.log(`Adding boids from cell ${adjacentKey}, count: ${this.cells[adjacentKey].length}`);
+                    // Check bounds before creating a key
+                    let adjX = x + i, adjY = y + j, adjZ = z + k;
+                    if (adjX >= 0 && adjX < this.dimensions.x && adjY >= 0 && adjY < this.dimensions.y && adjZ >= 0 && adjZ < this.dimensions.z) {
+                        const adjacentKey = this._cellKey(adjX, adjY, adjZ);
+                        if (this.cells[adjacentKey]) {
+                            nearbyBoids = nearbyBoids.concat(this.cells[adjacentKey]);
+                        }
                     }
                 }
             }
         }
-    
-        console.log(`Total nearby boids counted: ${nearbyBoids.length}`);
         return nearbyBoids;
     }
     

@@ -20,11 +20,11 @@ export class BoidManager {
         this.lightPoint = null;
         this.lightAttraction = lightAttraction;
         this.spawnRadius = spawnRadius;
-        this.minDistance_toLight = 1;
+        this.minDistance_toLight = 2.5;
         this.targetMinDistance_toLight = this.getRandomInt(3, 10); // Initializing with a random target initially
 
         const gridSize = new THREE.Vector3(30, 30, 30);
-        const cellSize = 1;
+        const cellSize = 3;
         this.grid = new spatialGrid(gridSize, cellSize);
 
         const gltfLoader = new GLTFLoader();
@@ -89,8 +89,13 @@ export class BoidManager {
         this.minDistance_toLight += (this.targetMinDistance_toLight - this.minDistance_toLight) * 0.1; // Interpolation rate of 10%
 
         for (const boid of this.boids) {
-            let postion = boid.givePos();
-            const spatialKey = this.grid._cellKey(postion.x,postion.y,postion.z);
+            const position =boid.givePos();
+            const xIndex = Math.floor(position.x / this.grid.cellSize);
+                const yIndex = Math.floor(position.y / this.grid.cellSize);
+                const zIndex = Math.floor(position.z / this.grid.cellSize);
+
+                // Generate the spatial key using the indices
+                const spatialKey = this.grid._cellKey(xIndex, yIndex, zIndex);
             const nearbyBoids = this.grid.getBoidsInAdjacentCellsByKey(spatialKey);
 
             const lightAttractionForce = boid.attractionToLight();
@@ -103,17 +108,25 @@ export class BoidManager {
             ).normalize().multiplyScalar(0.1);
 
             const distanceToLight = boid.position.distanceTo(this.lightPoint);
-
             if (distanceToLight > this.minDistance_toLight) {
-                boid.applyForce(lightAttractionForce, deltaTime);
-            } 
-            /*
-            else if (distanceToLight <= this.minDistance_toLight) {
-                const repulsionForce = lightAttractionForce.clone().negate();
-                boid.applyForce(repulsionForce, deltaTime);
+                if (!boid.run) {
+                    boid.applyForce(lightAttractionForce, deltaTime);
+                }
+            } else {
+                if (!boid.run) {
+                    boid.run = true;
+                    var repulsionForce = lightAttractionForce.clone().negate();
+                    repulsionForce.x+= getRandomFloat(-2, 2);
+                    repulsionForce.y+= getRandomFloat(-2, 2);
+                    repulsionForce.z+= getRandomFloat(-2, 2);
+                    boid.runDistance = boid.position.clone().add(repulsionForce); // Update the target run distance
+                    boid.applyForce(repulsionForce, deltaTime)
+                }
             }
-            */
-            boid.applyForce(avoidanceForce, deltaTime);
+    
+            if (boid.position.distanceTo(this.lightPoint) < 7) {
+                boid.run = false; // Reset running state when close to the run distance
+            }
 
             boid.update();
             boid.boieRender();
@@ -129,6 +142,7 @@ export class BoidManager {
         }
         console.log(this.obstacles.length);
     }
+    
 
     
 

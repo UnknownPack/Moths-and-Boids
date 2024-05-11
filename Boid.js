@@ -15,6 +15,8 @@ export class Boid{
         this.boundingSphere = null;
         this.spatialKey = '';
         this.initBoidMesh(geometry, material); 
+        this.run = false;
+        this.runDistance = 1;
     }
     
     update() {
@@ -154,10 +156,10 @@ export class Boid{
         return avoidanceForce;
     }
     else if(count == 0){
-        console.log("no count");
+        //console.log("no count");
     }
     else{
-        console.log("no avoidance force");
+        //console.log("no avoidance force");
     }
 
     return new THREE.Vector3(); // Return zero vector if no obstacles within range
