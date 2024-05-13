@@ -6,7 +6,6 @@ import { BoidManager } from './BoidManager.js';
 import { GLTFLoader } from './build/loaders/GLTFLoader.js';
 import {GPUComputationRenderer} from './build/misc/GPUComputationRenderer.js';
 import { Sky } from './build/environment/Sky.js';
-import { guiControls } from './guiControls.js';
 
 // GRAPHICS CONST
 let camera, controls, renderer;
