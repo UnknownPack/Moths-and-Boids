@@ -6,6 +6,7 @@ import { BoidManager } from './BoidManager.js';
 import { GLTFLoader } from './build/loaders/GLTFLoader.js';
 import {GPUComputationRenderer} from './build/misc/GPUComputationRenderer.js';
 import { Sky } from './build/environment/Sky.js';
+import { guiControls } from './guiControls.js';
 
 // GRAPHICS CONST
 let camera, controls, renderer;
@@ -47,6 +48,9 @@ function init() {
   createObjects();
   initInput();
   initSky();
+
+  // Initialize GUI controls
+  const controlsUI = new guiControls(scene, lightbulb, boidManager);
 }
 
 function initGraphics() {
@@ -271,6 +275,7 @@ function createObjects() {
   // const axis = new Ammo.btVector3(0, 1, 0);
   // hinge = new Ammo.btHingeConstraint(pylon.userData.physicsBody, arm.userData.physicsBody, pivotA, pivotB, axis, axis, true);
   // physicsWorld.addConstraint(hinge, true);
+
 }
 
 function createParalellepiped(sx, sy, sz, mass, pos, quat, material) {
