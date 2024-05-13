@@ -4,6 +4,8 @@ import { EnvironmentGenerator } from './EnvironmentGenerator.js';
 import { InteractionHandler } from './InteractionHandler.js';
 import { BoidManager } from './BoidManager.js';
 import { GLTFLoader } from './build/loaders/GLTFLoader.js';
+import {GPUComputationRenderer} from './build/misc/GPUComputationRenderer.js';
+import { Sky } from './build/environment/Sky.js';
 
 // GRAPHICS CONST
 let camera, controls, renderer;
@@ -25,6 +27,8 @@ let transformAux1;
 
 let armMovement = 0;
 
+let lightPoint_position = new THREE.Vector3(0, 0, 3);
+
 // Inits physics environment
 Ammo().then(function (AmmoLib) {
 
@@ -42,13 +46,14 @@ function init() {
   initPhysics();
   createObjects();
   initInput();
+  initSky();
 }
 
 function initGraphics() {
   var ratio = window.innerWidth / window.innerHeight;
   //create the perspective camera
   camera = new THREE.PerspectiveCamera(45, ratio, 0.1, 1000);
-  camera.position.set(0, 0, 15);
+  camera.position.set(0, 0, 100);
   camera.lookAt(0, 0, 1);
 
   // Creates lightning environment
@@ -61,9 +66,23 @@ function initGraphics() {
   // Creates the renderer
   renderer = new THREE.WebGLRenderer();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  //renderer.shadowMap.enabled = true;
+  //renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setPixelRatio(window.devicePixelRatio * 0.5); 
+  //for sky 
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
   document.body.appendChild(renderer.domElement);
+
+  //////////////
+  // ORBIT CONTROLS //
+  //////////////
+
+  // move mouse and: left   click to rotate,
+  //                 middle click to zoom,
+  //                 right  click to pan
+  // add the new control and link to the current camera to transform its position
+  controls = new OrbitControls(camera, renderer.domElement);
 }
 
 function initPhysics() {
@@ -82,19 +101,61 @@ function initPhysics() {
   transformAux1 = new Ammo.btTransform();
 
 }
+let sky, sun, elevation, azimuth, phi, theta, uniforms;
+function initSky(){
+  sky = new Sky();
+	sky.scale.setScalar( 450000 );
+	scene.add( sky );
+  sun = new THREE.Vector3();
+
+  uniforms = sky.material.uniforms;
+  renderer.toneMappingExposure = 0.2; // 0-1
+  uniforms[ 'turbidity' ].value = 0; // 0-20
+  uniforms[ 'rayleigh' ].value = 0.147; //0-4
+	uniforms[ 'mieCoefficient' ].value = 0.023; // 0-0.1
+	uniforms[ 'mieDirectionalG' ].value = 0.7; //0-1
+
+  updateSky(0);
+}
+function updateSky(time){
+  const elevation = 2 + 60 * Math.sin(Math.PI * time); // 0-90
+  const azimuth = 2* 180 * time; //-180 - 180
+  const phi = THREE.MathUtils.degToRad( 90 - elevation );
+	const theta = THREE.MathUtils.degToRad( azimuth );
+  sun.setFromSphericalCoords( 1, phi, theta );
+  uniforms[ 'sunPosition' ].value.copy( sun );
+  renderer.toneMappingExposure += time/10;
+
+}
+function resetSky(){
+  const elevation = 0; // 0-90
+  const azimuth = -180; //-180 - 180
+  const phi = THREE.MathUtils.degToRad( 90 - elevation );
+	const theta = THREE.MathUtils.degToRad( azimuth );
+  sun.setFromSphericalCoords( 1, phi, theta );
+  uniforms[ 'sunPosition' ].value.copy( sun );
+  renderer.toneMappingExposure = 0.2; // 0-1
+}
+
+/*
+function initNightSky(){
+  float theta = acos( direction.y ); // elevation --> y-axis, [-pi/2, pi/2]
+  float phi = atan( direction.z, direction.x ); // azimuth --> x-axis [-pi/2, pi/2]
+  vec2 uv = vec2( phi, theta ) / vec2( 2.0 * pi, pi ) + vec2( 0.5, 0.0 );
+  vec3 L0 = vec3( 0.1 ) * Fex; explaine the code for nightsky
+}*/
+
+
 
 function createObjects() {
 
   // ENVIRONMENT
-  // Generates the environment
   var environment = new EnvironmentGenerator(scene);
-  // environment.generateGround(100,100);
-
-  var filepath = 'models/american_style_house/scene.gltf';
-  var filepath2 = 'models/forest_house/scene.gltf';
-  environment.loadGLTFEnvironmentModel(filepath);
-  var filepath3 = 'models/Campfire.obj';
-  //environment.loadOBJEnvironmentModel(filepath2);
+  environment.loadGLTFEnvironmentModel('models/american_style_house/scene.gltf');
+  environment.loadGLTFEnvironmentModel('models/low_poly_wood_fence_on_grass/scene.gltf');
+  environment.loadGLTFEnvironmentModel('models/stylized_bush/scene.gltf');
+  //environment.loadGLTFEnvironmentModel('models/forest_house/scene.gltf');
+  //environment.loadOBJEnvironmentModel('models/Campfire.obj');
 
   // LIGHTBULB
   const bulbMass = 10;
@@ -116,6 +177,10 @@ function createObjects() {
   lightbulb.name = "lightbulb";
   lightbulb.position.y = pos.y;
   lightbulb.position.z = pos.z;
+
+  //assign the light's position as the lightPoint that the boids will be attracted to
+  lightPoint_position = lightbulb.position;
+
   const bulbShape = new Ammo.btSphereShape(bulbRadius);
   bulbShape.setMargin(margin);
   createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
@@ -166,7 +231,7 @@ function createObjects() {
   const base = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0,2), baseMaterial);
   base.position.x = lightbulb.position.x;
   base.position.y = 4;
-  base.position.z = 3;
+  base.position.z = 3; 
   base.castShadow = true;
   base.receiveShadow = true;
   base.add(rope);
@@ -176,7 +241,7 @@ function createObjects() {
   base.userData.physicsBody.setFriction(0.5);
 
   // Makes base draggable
-  const interactionHandler = new InteractionHandler(camera, renderer);
+  const interactionHandler = new InteractionHandler(camera, renderer, controls);
   interactionHandler.addDragObject(base);
   scene.add(base)
 
@@ -282,11 +347,30 @@ function createRigidBody(threeObject, physicsShape, mass, pos, quat) {
 
 }
 
+let lastSkyUpdate = 0;
+const updateInterval = 1000;
+let elapsedTime = 0;
 function animate() {
   requestAnimationFrame(animate);
   if (scene != undefined) {
     requestAnimationFrame(MyUpdateLoop);
   }
+  const now = performance.now();
+  const delta = clock.getDelta();
+  elapsedTime += delta;
+  const totalDayTime = 300;
+  const timeOfDay = (elapsedTime % totalDayTime) / totalDayTime;
+  if(elapsedTime >= totalDayTime){
+    resetSky();
+    elapsedTime %= totalDayTime;
+    console.log("a new day");
+  }
+
+  if (now - lastSkyUpdate > updateInterval) {
+    updateSky(timeOfDay);
+    lastSkyUpdate = now; 
+  }
+  renderer.render(scene, camera);
 }
 
 function updatePhysics(deltaTime) {
@@ -333,61 +417,67 @@ function updatePhysics(deltaTime) {
 
 }
 
+
 //////////////
-  // ORBIT CONTROLS //
-  //////////////
+//GPUCompute//
+//////////////
+/*
+function initComputeRenderer() {
+  const gpuCompute = new GPUComputationRenderer( 1024, 1024, renderer );
+  const dtPosition = gpuCompute.createTexture();
+  const dtVelocity = gpuCompute.createTexture();
+  fillPositionTexture( dtPosition );
+  fillVelocityTexture( dtVelocity );
 
-  // move mouse and: left   click to rotate,
-  //                 middle click to zoom,
-  //                 right  click to pan
-  // add the new control and link to the current camera to transform its position
+  velocityVariable = gpuCompute.addVariable( 'textureVelocity', document.getElementById( 'fragmentShaderVelocity' ).textContent, dtVelocity );
+	positionVariable = gpuCompute.addVariable( 'texturePosition', document.getElementById( 'fragmentShaderPosition' ).textContent, dtPosition );
 
-//   controls = new OrbitControls(camera, renderer.domElement);
+  gpuCompute.setVariableDependencies( velocityVariable, [ positionVariable, velocityVariable ] );
+	gpuCompute.setVariableDependencies( positionVariable, [ positionVariable, velocityVariable ] );
 
-// // If click on cube, drag cube, otherwise change view
-// function onDocumentMouseDown(event) {
-//   mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
-//   mouse.y = - (event.clientY / renderer.domElement.clientHeight) * 2 + 1;
-//   raycaster.setFromCamera(mouse, camera);
+  positionUniforms = positionVariable.material.uniforms;
+  velocityUniforms = velocityVariable.material.uniforms;
 
-//   var intersects = raycaster.intersectObjects(scene.children, false);
-
-//   if (intersects.length > 0 && (intersects[0].object.name == "lightbulb")) {
-//     selectedObj = true;
-//     controls.enabled = false;
-//   }
-// }
-// function onDocumentMouseUp(event) {
-//   if (selectedObj) {
-//     selectedObj = false;
-//     controls.enabled = true;
-//   }
-// }
-// document.addEventListener('mousedown', onDocumentMouseDown, false);
-// document.addEventListener('mouseup', onDocumentMouseUp, false);
+  positionUniforms[ 'time' ] = { value: 0.0 };
+  positionUniforms[ 'delta' ] = { value: 0.0 };
+  velocityUniforms[ 'time' ] = { value: 1.0 };
+  velocityUniforms[ 'delta' ] = { value: 0.0 };
+  velocityUniforms[ 'testing' ] = { value: 1.0 };
+  velocityUniforms[ 'separationDistance' ] = { value: 1.0 };
+  velocityUniforms[ 'alignmentDistance' ] = { value: 1.0 };
+  velocityUniforms[ 'cohesionDistance' ] = { value: 1.0 };
+  velocityUniforms[ 'freedomFactor' ] = { value: 1.0 };
+  velocityUniforms[ 'predator' ] = { value: new THREE.Vector3() };
+  velocityVariable.material.defines.BOUNDS = BOUNDS.toFixed( 2 );
+}
+*/
 
 //////////////
 //  Boids   //
 //////////////
 
+
+
 // Create boid manager
 //these paramters can be changed
-const numberOfBoids = 1000;
+
+const numberOfBoids = 100;
 const obstacles = [];
-const velocity = 0.1;
+const velocity = 0.5;
 const maxSpeed = 0.1;
 const maxForce = 0.1;
-const searchRadius = 3;
-// change lightPoint Vector3 to lightbulb
-const lightPoint = new THREE.Vector3(0, 15, 0);
-const lightAttraction = 100;
+const searchRadius = 2;
+// change lightPoint Vector3 to lightbulb 
+const lightPoint = lightPoint_position;
+const lightAttraction = 50;
 const spawnRadius = 10;
 const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene);
 
 //final update loop
-var clock = new THREE.Clock();
-var deltaTime;
-var MyUpdateLoop = function () {
+let clock = new THREE.Clock();
+var deltaTime; 
+var MyUpdateLoop = function () { 
+  //console.log( lightPoint_position);
   deltaTime = clock.getDelta();
   CreateScene();
   updatePhysics(deltaTime);
@@ -395,7 +485,9 @@ var MyUpdateLoop = function () {
   renderer.render(scene, camera);
 
   //insert in method bellow, another method that returns the position of the light
-  boidManager.setLightPoint(lightPoint);
+  boidManager.setLightPoint(lightPoint_position);
+
+
   boidManager.updateBoids(deltaTime);
 
   // - Orbit Controls - 
