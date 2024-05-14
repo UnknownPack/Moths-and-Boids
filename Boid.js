@@ -51,14 +51,14 @@ export class Boid{
         // I will use spheres to represent the moth
     
         this.boidMesh = new THREE.Mesh(geometry, material);
-        this.boidMesh.scale.set(0.07, 0.07, 0.07);
+        this.boidMesh.scale.set(0.1,0.1,0.1);
         this.boidMesh.position.copy(this.position);
     } 
     
     applyForce(force, deltaTime) {
-        let inertiaFactor = 0.001;
+        let inertiaFactor = 0.01;
         let dampingFactor = 0.95;  // Reduce velocity by 5% each frame to add damping
-        let smoothedForce = force.clone().multiplyScalar(10000000);
+        let smoothedForce = force.clone().multiplyScalar(10000);
         let deltaV = smoothedForce.multiplyScalar(deltaTime * inertiaFactor);
         this.velocity.add(deltaV);
         this.velocity.multiplyScalar(dampingFactor); // Apply damping
@@ -73,8 +73,6 @@ export class Boid{
         }
     }
     
-    
-    
     randomRotation() {
         // Generate a new random direction vector
         let disperseValue = 15;
@@ -85,18 +83,33 @@ export class Boid{
     
         return directionVector;
     }
+
     
-    attractionToLight(){
-        if (!this.lightPoint) return new THREE.Vector3(0, 0, 0); // Return a zero vector if lightPoint is not set
-        const lightAttractionForce = new THREE.Vector3().subVectors(this.lightPoint, this.position);
-        lightAttractionForce.multiplyScalar(this.lightAttraction);
     
-        // Quaternion rotation towards light
-        if (!lightAttractionForce.equals(new THREE.Vector3(0, 0, 0))) {
-            const currentDirection = new THREE.Vector3(0, 0, -1);  // Assuming the forward direction
-            const targetDirection = lightAttractionForce.clone().normalize();
-            const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
-            this.boidMesh.quaternion.slerp(quaternionTarget, 0.05); // Adjust the factor as needed
+    attractionToLight() {
+        let lightAttractionForce;  
+    
+        if (!this.lightPoint) return new THREE.Vector3(0, 0, 0);  
+    
+        if (this.lightAttraction > 0) {
+            lightAttractionForce = new THREE.Vector3().subVectors(this.lightPoint, this.position);
+            lightAttractionForce.multiplyScalar(this.lightAttraction);
+            
+            // Quaternion rotation towards light
+            if (!lightAttractionForce.equals(new THREE.Vector3(0, 0, 0))) {
+                const currentDirection = new THREE.Vector3(0, 0, -1);  // Assuming the forward direction
+                const targetDirection = lightAttractionForce.clone().normalize();
+                const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
+                this.boidMesh.quaternion.slerp(quaternionTarget, (0.05*0.05)); // Adjust the factor as needed
+            }
+        } 
+        
+        else if (this.lightAttraction <= 0) {
+            lightAttractionForce = new THREE.Vector3(
+                this.getRandomFloat(0.01, 1), 
+                this.getRandomFloat(0.01, 1), 
+                this.getRandomFloat(0.01, 1)
+            ).normalize().multiplyScalar(this.maxSpeed); // Example scalar to control the magnitude
         }
     
         return lightAttractionForce;
@@ -116,10 +129,11 @@ export class Boid{
                 }
             }
         }
-        
+        /*
         if (avoidanceForce.length() > maxAvoidanceForce) {
             avoidanceForce.normalize().multiplyScalar(maxAvoidanceForce);
         }
+        */
     
         // Quaternion rotation to lean back from obstacles
         if (!avoidanceForce.equals(new THREE.Vector3(0, 0, 0))) {
@@ -131,10 +145,20 @@ export class Boid{
     
         return avoidanceForce;
     }
+
+
+
+    setLightPoint(point){
+        this.lightPoint = point;
+    }
     
 
     updateSpatialKey(spatialKey){
         this.spatialKey = spatialKey;
+    }
+
+    giveLightPoint(){
+        return this.lightPoint;
     }
 
     giveSpatialKey(){
@@ -144,6 +168,14 @@ export class Boid{
     givePos(){
         return this.position;
     }
+
+    getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+      
+      getRandomFloat(min, max) {
+        return Math.random() * (max - min) + min;
+      }
   } 
 
   function easeInOut(t) {
@@ -151,5 +183,13 @@ export class Boid{
         return 2 * t * t;
     } else {
         return -1 + (4 - 2 * t) * t;
+    }
+
+    function* test() {
+        console.log('Hello!');
+        var x = yield;
+        console.log('First I got: ' + x);
+        var y = yield;
+        console.log('Then I got: ' + y);
     }
 }
