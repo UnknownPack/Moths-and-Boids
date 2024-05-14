@@ -9,13 +9,14 @@ export class InteractionHandler{
         this.renderer = renderer;
         this.orbitControls = orbitControls;
         const controls = new DragControls(this.draggedObjects, camera, renderer.domElement);
+        controls.transformGroup = true;
         
         controls.addEventListener( 'dragstart', ( event ) => {
-            this.orbitControls.enabled = false;
-            // TODO add an animated cable swing
-            if (event.object.material && event.object.material.emissive) {
-                event.object.material.emissive.set(0xaaaaaa);
-            }
+            // this.orbitControls.enabled = false;
+            // // TODO add an animated cable swing
+            // if (event.object.material && event.object.material.emissive) {
+            //     event.object.material.emissive.set(0xaaaaaa);
+            // }
             console.log("Drag start");
         } );
         /*
@@ -25,11 +26,11 @@ export class InteractionHandler{
         } ); */
         
         controls.addEventListener( 'dragend', ( event ) => {
-            this.orbitControls.enabled = true;
-            // TODO add an animated cable swing          
-            if (event.object.material && event.object.material.emissive) {
-                event.object.material.emissive.set( 0x000000 );
-            }
+            // this.orbitControls.enabled = true;
+            // // TODO add an animated cable swing          
+            // if (event.object.material && event.object.material.emissive) {
+            //     event.object.material.emissive.set( 0x000000 );
+            // }
             console.log("Drag end");
         } ); 
     }
