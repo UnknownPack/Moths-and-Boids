@@ -51,6 +51,7 @@ function init() {
   // DEBUGGING
   console.log(scene.children);
 }
+
 function initGraphics() {
   var ratio = window.innerWidth / window.innerHeight;
   //create the perspective camera
@@ -92,7 +93,6 @@ function initGraphics() {
 function initPhysics() {
 
   // Physics configuration
-
   collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
   dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
   broadphase = new Ammo.btDbvtBroadphase();
@@ -105,7 +105,6 @@ function initPhysics() {
   transformAux1 = new Ammo.btTransform();
 
 }
-
 
 let sky, sun, uniforms;
 function initSky(){
@@ -140,6 +139,7 @@ function resetSky(){
   sun.setFromSphericalCoords( 1, phi, theta );
   uniforms[ 'sunPosition' ].value.copy( sun );
 }
+
 
 
 function createObjects() {
@@ -406,6 +406,7 @@ function ClearScene() {
     if (scene.children[i].type == "Mesh")
       scene.remove(scene.children[i]);
 }
+
 function CreateTransfMatrices() {
 }
 
@@ -538,10 +539,10 @@ function initComputeRenderer() {
   fillVelocityTexture( dtVelocity );
 
   velocityVariable = gpuCompute.addVariable( 'textureVelocity', document.getElementById( 'fragmentShaderVelocity' ).textContent, dtVelocity );
-	positionVariable = gpuCompute.addVariable( 'texturePosition', document.getElementById( 'fragmentShaderPosition' ).textContent, dtPosition );
+  positionVariable = gpuCompute.addVariable( 'texturePosition', document.getElementById( 'fragmentShaderPosition' ).textContent, dtPosition );
 
   gpuCompute.setVariableDependencies( velocityVariable, [ positionVariable, velocityVariable ] );
-	gpuCompute.setVariableDependencies( positionVariable, [ positionVariable, velocityVariable ] );
+  gpuCompute.setVariableDependencies( positionVariable, [ positionVariable, velocityVariable ] );
 
   positionUniforms = positionVariable.material.uniforms;
   velocityUniforms = velocityVariable.material.uniforms;
@@ -569,7 +570,7 @@ function initComputeRenderer() {
 // Create boid manager
 //these paramters can be changed
 
-const numberOfBoids = 150;
+const numberOfBoids = 1000;
 const obstacles = [];
 const velocity = 0.5;
 const maxSpeed = 0.1;
@@ -596,7 +597,7 @@ var MyUpdateLoop = function () {
   //render()
   renderer.render(scene, camera);
 
-
+  //boidManager.setLightPoint(lightPoint);
   boidManager.updateBoids(deltaTime);
 
   // - Orbit Controls - 
