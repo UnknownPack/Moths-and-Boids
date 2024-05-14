@@ -22,12 +22,6 @@ export class EnvironmentGenerator{
         ground.position.y = -1;
         this.scene.add(ground);
     }
-/*
-    generateSky(scene){       
-        let sky = new Sky();
-        sky.scale.setScalar( 450000 );
-        this.scene.add(sky);
-    }*/
 
     loadOBJEnvironmentModel(filePath){
         var loader = new OBJLoader();
@@ -59,7 +53,6 @@ export class EnvironmentGenerator{
         var rot = new THREE.Matrix4();
         var combined = new THREE.Matrix4();
 
-        
         tra.makeTranslation (-center.x-150,-center.y+80,-center.z);
         if(filePath == 'models/american_style_house/scene.gltf'){
             sca.makeScale(150/size.length(),150/size.length(),150/size.length());

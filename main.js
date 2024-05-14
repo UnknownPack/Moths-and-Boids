@@ -103,10 +103,10 @@ function initPhysics() {
 }
 
 
-let sky, sun, elevation, azimuth, phi, theta, uniforms;
+let sky, sun, uniforms;
 function initSky(){
   sky = new Sky();
-	sky.scale.setScalar( 4500 ); //450000 
+	sky.scale.setScalar( 450); 
 	scene.add( sky );
   sun = new THREE.Vector3();
 
@@ -116,37 +116,26 @@ function initSky(){
   uniforms[ 'rayleigh' ].value = 3; //0-4
 	uniforms[ 'mieCoefficient' ].value = 0.033; // 0-0.1
 	uniforms[ 'mieDirectionalG' ].value = 0.63; //0-1
-
   updateSky(0);
 }
-function updateSky(time){
-  const elevation = time * 180; //
-  const azimuth = 30; //-180 - 180
+
+function updateSky(timeofDay){
+  const azimuth = 30; 
+  const elevation = timeofDay * 180; //0 - 180
   const phi = THREE.MathUtils.degToRad( 90 - elevation );
 	const theta = THREE.MathUtils.degToRad( azimuth );
   sun.setFromSphericalCoords( 1, phi, theta );
   uniforms[ 'sunPosition' ].value.copy( sun );
-  //renderer.toneMappingExposure += time/10;
-
+  //renderer.toneMappingExposure = Math.max(0.1, 0.6);
 }
 function resetSky(){
-  const elevation = 0; // 0-90
-  const azimuth = -180; //-180 - 180
+  const elevation = 0; 
+  const azimuth = 30; 
   const phi = THREE.MathUtils.degToRad( 90 - elevation );
 	const theta = THREE.MathUtils.degToRad( azimuth );
   sun.setFromSphericalCoords( 1, phi, theta );
   uniforms[ 'sunPosition' ].value.copy( sun );
-  renderer.toneMappingExposure = 0.2; // 0-1
 }
-
-/*
-function initNightSky(){
-  float theta = acos( direction.y ); // elevation --> y-axis, [-pi/2, pi/2]
-  float phi = atan( direction.z, direction.x ); // azimuth --> x-axis [-pi/2, pi/2]
-  vec2 uv = vec2( phi, theta ) / vec2( 2.0 * pi, pi ) + vec2( 0.5, 0.0 );
-  vec3 L0 = vec3( 0.1 ) * Fex; explaine the code for nightsky
-}*/
-
 
 
 function createObjects() {
@@ -350,7 +339,7 @@ function createRigidBody(threeObject, physicsShape, mass, pos, quat) {
 }
 
 let lastSkyUpdate = 0;
-const updateInterval = 10;
+let updateInterval = 10;
 let elapsedTime = 0;
 function animate() {
   requestAnimationFrame(animate);
@@ -360,14 +349,13 @@ function animate() {
   const now = performance.now();
   const delta = clock.getDelta();
   elapsedTime += delta;
-  const totalDayTime = 10;
+  const totalDayTime = 5; //24seconds
   const timeOfDay = (elapsedTime % totalDayTime) / totalDayTime; // 0-1
   if(elapsedTime >= totalDayTime){
     resetSky();
-    elapsedTime %= totalDayTime;
+    elapsedTime = 0;
     console.log("a new day");
   }
-
   if (now - lastSkyUpdate > updateInterval) {
     updateSky(timeOfDay);
     lastSkyUpdate = now; 
