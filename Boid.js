@@ -51,7 +51,7 @@ export class Boid{
         // I will use spheres to represent the moth
     
         this.boidMesh = new THREE.Mesh(geometry, material);
-        this.boidMesh.scale.set(0.07, 0.07, 0.07);
+        this.boidMesh.scale.set(0.1,0.1,0.1);
         this.boidMesh.position.copy(this.position);
     } 
     
@@ -73,8 +73,6 @@ export class Boid{
         }
     }
     
-    
-    
     randomRotation() {
         // Generate a new random direction vector
         let disperseValue = 15;
@@ -85,6 +83,8 @@ export class Boid{
     
         return directionVector;
     }
+
+    
     
     attractionToLight() {
         let lightAttractionForce;  
@@ -100,7 +100,7 @@ export class Boid{
                 const currentDirection = new THREE.Vector3(0, 0, -1);  // Assuming the forward direction
                 const targetDirection = lightAttractionForce.clone().normalize();
                 const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
-                this.boidMesh.quaternion.slerp(quaternionTarget, 0.05); // Adjust the factor as needed
+                this.boidMesh.quaternion.slerp(quaternionTarget, (0.05*0.05)); // Adjust the factor as needed
             }
         } 
         
@@ -114,8 +114,6 @@ export class Boid{
     
         return lightAttractionForce;
     }
-    
-    
     
     
     avoidanceBehaviour(obstacles) {
@@ -147,6 +145,8 @@ export class Boid{
         return avoidanceForce;
     }
 
+
+
     setLightPoint(point){
         this.lightPoint = point;
     }
@@ -154,6 +154,10 @@ export class Boid{
 
     updateSpatialKey(spatialKey){
         this.spatialKey = spatialKey;
+    }
+
+    giveLightPoint(){
+        return this.lightPoint;
     }
 
     giveSpatialKey(){
@@ -178,5 +182,13 @@ export class Boid{
         return 2 * t * t;
     } else {
         return -1 + (4 - 2 * t) * t;
+    }
+
+    function* test() {
+        console.log('Hello!');
+        var x = yield;
+        console.log('First I got: ' + x);
+        var y = yield;
+        console.log('Then I got: ' + y);
     }
 }

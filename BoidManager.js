@@ -23,11 +23,11 @@ export class BoidManager {
         this.targetMinDistance_toLight = this.getRandomInt(3, 10); // Initializing with a random target initially
 
         const gridSize = new THREE.Vector3(30, 30, 30);
-        const cellSize = 4;
+        const cellSize = 0.5;
         this.grid = new spatialGrid(gridSize, cellSize);
 
         const gltfLoader = new GLTFLoader();
-        gltfLoader.load('./models/Moth/moth.gltf', (gltf) => {
+        gltfLoader.load('./models/Moth/mothfast.gltf', (gltf) => {
             gltf.scene.traverse((child) => {
                 if (child.isMesh) {
                     child.material = new THREE.MeshPhongMaterial({
@@ -110,12 +110,20 @@ export class BoidManager {
         }
     }
 
-    setLightPoint(lightPoint) {
+    setLightPoint(lightPoint) {   
         this.lightPoint = lightPoint;
         for (const boid of this.boids) {
-            boid.setLightPoint(lightPoint);
+            //var x = this.getRandomFloat(0, 3);
+            //var y = this.getRandomFloat(0, 3);
+            //var z = this.getRandomFloat(0, 3);
+            //var futurePower = new Vector3(x, y, z);
+            ///var boidLightPoint = lightPoint.copy();  
+            //boidLightPoint.add(futurePower);  
+            //this.lightPoint
+            boid.setLightPoint(boidLightPoint);
         }
     }
+    
 
     addObjectToGrid(object) {
         this.otherObjects.add(object);
