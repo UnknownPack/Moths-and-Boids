@@ -56,9 +56,9 @@ export class Boid{
     } 
     
     applyForce(force, deltaTime) {
-        let inertiaFactor = 0.001;
+        let inertiaFactor = 0.01;
         let dampingFactor = 0.95;  // Reduce velocity by 5% each frame to add damping
-        let smoothedForce = force.clone().multiplyScalar(10000000);
+        let smoothedForce = force.clone().multiplyScalar(10000);
         let deltaV = smoothedForce.multiplyScalar(deltaTime * inertiaFactor);
         this.velocity.add(deltaV);
         this.velocity.multiplyScalar(dampingFactor); // Apply damping
@@ -129,10 +129,11 @@ export class Boid{
                 }
             }
         }
-        
+        /*
         if (avoidanceForce.length() > maxAvoidanceForce) {
             avoidanceForce.normalize().multiplyScalar(maxAvoidanceForce);
         }
+        */
     
         // Quaternion rotation to lean back from obstacles
         if (!avoidanceForce.equals(new THREE.Vector3(0, 0, 0))) {
