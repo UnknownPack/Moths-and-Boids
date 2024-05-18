@@ -575,9 +575,9 @@ const obstacles = [];
 const velocity = 0.5;
 const maxSpeed = 0.1;
 const maxForce = 0.1;
-const searchRadius = 3;
-const lightAttraction = 1000;
-const spawnRadius = 20;
+const searchRadius = 7;
+const lightAttraction = 20;
+const spawnRadius = 30;
 const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene);
 boidManager.setLightPoint(lightPoint);
 
