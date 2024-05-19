@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Boid } from './Boid.js'; 
+import { mothEater } from './mothEater.js';
 import { spatialGrid } from './SpatialPartition.js'; 
 import { OBJLoader } from './build/loaders/OBJLoader.js';
 import { MTLLoader } from './build/loaders/MTLLoader.js';
@@ -10,6 +11,7 @@ export class BoidManager {
         this.numberOfBoids = numberOfBoids;
         this.scene = scene;
         this.boids = [];
+        this.mothEaters = [];
         this.obstacles = obstacles;
 
         this.velocity = velocity;
@@ -41,6 +43,8 @@ export class BoidManager {
         }, null, (error) => {
             console.error('An error happened during GLTF loading:', error);
         });
+
+        
     }
 
     makeBoids() {
@@ -93,6 +97,43 @@ export class BoidManager {
         }
     }
 
+    decimate(spatialKey, me) {
+        if (this.grid.cells[spatialKey]) { 
+            for (let i = this.grid.cells[spatialKey].length - 1; i >= 0; i--) {
+                const boid = this.grid.cells[spatialKey][i];  
+        
+                if (boid !== me) { 
+                    if (me.position.distanceTo(boid.position) <= me.eatRange) {
+                        this.scene.remove(boid); 
+                        boid.geometry.dispose();
+                        boid.material.dispose(); 
+                        this.grid.cells[spatialKey].splice(i, 1); // Remove boid from the cell array
+    
+                        const index = this.boids.indexOf(boid); // Also remove boid from the main boids array
+                        if (index !== -1) {
+                            this.boids.splice(index, 1);
+                        }
+        
+                        console.log("Boid removed");
+                    }
+                }
+            }
+        }
+    }
+
+    spawnFlyer_mothEater(){
+        let position = new THREE.Vector3(0,1000, getRandomInt(-3,4));
+        let endPos = new THREE.Vector3(0,-1000, getRandomInt(-3,4));
+        let speed = getRandomFloat(0.5,2.5);
+        let eatRange = 3;
+        const boid = new Boid(position, position, endPos, speed, eatRange, geometry, material, scene);
+    }
+
+    manageFlyer_mothEater(){
+
+    }
+    
+
     setLightPoint(lightPoint) {   
         this.lightPoint = lightPoint;
         for (const boid of this.boids) {
@@ -107,7 +148,6 @@ export class BoidManager {
         }
     }
     
-
     addObjectToGrid(object) {
         this.otherObjects.add(object);
     }
