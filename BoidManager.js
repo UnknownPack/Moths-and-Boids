@@ -23,11 +23,11 @@ export class BoidManager {
         this.targetMinDistance_toLight = this.getRandomInt(3, 10); // Initializing with a random target initially
 
         const gridSize = new THREE.Vector3(30, 30, 30);
-        const cellSize = 4;
+        const cellSize = 0.5;
         this.grid = new spatialGrid(gridSize, cellSize);
 
         const gltfLoader = new GLTFLoader();
-        gltfLoader.load('./models/Moth/moth.gltf', (gltf) => {
+        gltfLoader.load('./models/Moth/mothfast.gltf', (gltf) => {
             gltf.scene.traverse((child) => {
                 if (child.isMesh) {
                     child.material = new THREE.MeshPhongMaterial({
@@ -65,57 +65,48 @@ export class BoidManager {
         }
     }
 
-    updateBoids(deltaTime) {
-        //console.log(this.lightPoint);
+    updateBoids(deltaTime) { 
         this.grid.clear();
         for (const boid of this.boids) {
             this.grid.insertBoidAtPosition(boid, boid.givePos());
-        }
-
-        // Update the minDistance_toLight to interpolate towards the targetMinDistance_toLight
-        this.minDistance_toLight += (this.targetMinDistance_toLight - this.minDistance_toLight) * 0.1; // Interpolation rate of 10%
+        } 
+        this.minDistance_toLight += (this.targetMinDistance_toLight - this.minDistance_toLight) * 0.1;  
 
         for (const boid of this.boids) {
             const spatialKey = boid.giveSpatialKey();
             const nearbyBoids = this.grid.getBoidsInAdjacentCellsByKey(spatialKey);
 
             const lightAttractionForce = boid.attractionToLight();
-            const avoidanceForce = boid.avoidanceBehaviour(nearbyBoids);
-            const randomMovement = new THREE.Vector3(
-                this.getRandomFloat(0.01, 1),
-                this.getRandomFloat(0.01, 1),
-                this.getRandomFloat(0.01, 1)
-            ).normalize().multiplyScalar(0.1);
-
+            const avoidanceForce = boid.avoidanceBehaviour(nearbyBoids); 
             const distanceToLight = boid.position.distanceTo(this.lightPoint);
 
             if (distanceToLight > this.minDistance_toLight) {
-                boid.applyForce(lightAttractionForce, deltaTime);
-            } 
-            /*
-            else if (distanceToLight <= this.minDistance_toLight) {
-                const repulsionForce = lightAttractionForce.clone().negate();
-                boid.applyForce(repulsionForce, deltaTime);
-            }
-            */
+                boid.applyForce(lightAttractionForce, deltaTime); 
+            }  
             boid.applyForce(avoidanceForce, deltaTime);
 
             boid.update();
             boid.boieRender();
-        }
-
-        // Optionally update targetMinDistance_toLight randomly at some intervals
-        if (Math.random() < 0.1) { // 10% chance to update the target distance every update
+        } 
+        if (Math.random() < 0.1) {  
             this.targetMinDistance_toLight = this.getRandomInt(3, 10);
         }
     }
 
-    setLightPoint(lightPoint) {
+    setLightPoint(lightPoint) {   
         this.lightPoint = lightPoint;
         for (const boid of this.boids) {
-            boid.setLightPoint(lightPoint);
+            //var x = this.getRandomFloat(0, 3);
+            //var y = this.getRandomFloat(0, 3);
+            //var z = this.getRandomFloat(0, 3);
+            //var futurePower = new Vector3(x, y, z);
+            ///var boidLightPoint = lightPoint.copy();  
+            //boidLightPoint.add(futurePower);  
+            //this.lightPoint
+            boid.setLightPoint(boidLightPoint);
         }
     }
+    
 
     addObjectToGrid(object) {
         this.otherObjects.add(object);
