@@ -50,6 +50,9 @@ export class mothEater{
     this.mesh.quaternion.copy(this.quaternion);
     }
 
+    givePos(){
+        return this.position;
+    }
     giveState(){
         return this.finished;
     }
