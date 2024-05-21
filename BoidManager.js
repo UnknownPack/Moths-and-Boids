@@ -21,7 +21,7 @@ export class BoidManager {
         this.lightPoint = null;
         this.lightAttraction = lightAttraction;
         this.spawnRadius = spawnRadius;
-        this.minDistance_toLight = 2;
+        this.minDistance_toLight = 1.5;
         this.targetMinDistance_toLight = this.getRandomInt(3, 10); // Initializing with a random target initially
 
         const gridSize = new THREE.Vector3(30, 30, 30);
@@ -87,6 +87,7 @@ export class BoidManager {
     }
 
     updateBoids(deltaTime) { 
+        var flyAway = false;
         this.grid.clear();
         for (const boid of this.boids) {
             this.grid.insertBoidAtPosition(boid, boid.givePos());
@@ -108,11 +109,22 @@ export class BoidManager {
 
             const lightAttractionForce = boid.attractionToLight();
             const avoidanceForce = boid.avoidanceBehaviour(nearbyBoids); 
-            const distanceToLight = boid.position.distanceTo(this.lightPoint);
+            let distanceToLight = boid.position.distanceTo(this.lightPoint);
 
-            if (distanceToLight > this.minDistance_toLight) {
+            if (distanceToLight <= this.minDistance_toLight){
+                flyAway = true;
+            }
+            if(distanceToLight>=7.5){
+                flyAway = false;
+            }
+    
+            if(flyAway == false){
                 boid.applyForce(lightAttractionForce, deltaTime); 
-            }  
+            }
+            else if (flyAway == true){ 
+                let lightForce_Inverse = lightAttractionForce.multiplyScalar(-1);
+                boid.applyForce(lightForce_Inverse, deltaTime);
+            }
             boid.applyForce(avoidanceForce, deltaTime);
 
             boid.update();

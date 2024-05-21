@@ -34,6 +34,8 @@ export class Boid{
         if (this.boundingSphere) {
             this.boundingSphere.center.copy(this.position);
         }
+
+        //this.orbitAroundLight();
     }
     
 
@@ -101,7 +103,8 @@ export class Boid{
                 this.getRandomFloat(0.01, 1)
             ).normalize().multiplyScalar(this.maxSpeed);  
         } 
-        const leftForce = this.leftForce_forOrbit(); 
+        var directionMultiplier = this.getRandomDirection();
+        const leftForce = this.leftForce_forOrbit(directionMultiplier);  
         const combinedForce = lightAttractionForce.add(leftForce);
     
         return combinedForce;
@@ -114,7 +117,7 @@ export class Boid{
         const distanceToLight = this.position.distanceTo(this.lightPoint); 
         const leftForceMagnitude = Math.max(this.lightAttraction / (distanceToLight + 1), 0.1);  
         const leftDirection = new THREE.Vector3(-1, 0, 0).applyQuaternion(this.boidMesh.quaternion).normalize();        
-        const leftForce = leftDirection.multiplyScalar(leftForceMagnitude);
+        const leftForce = leftDirection.multiplyScalar(leftForceMagnitude * 11);
     
         return leftForce;
     }
@@ -151,6 +154,21 @@ export class Boid{
         return avoidanceForce;
     }
 
+    orbitAroundLight() {
+        if (!this.lightPoint) return;   
+        const toLight = new THREE.Vector3().subVectors(this.lightPoint, this.position);
+        let orbitRadius = toLight.length(); 
+        const toLightNormalized = toLight.normalize(); 
+        const perpendicular = new THREE.Vector3(-toLightNormalized.y, toLightNormalized.x, 0); 
+        const radialForceMagnitude = (toLight.length() - orbitRadius) * 0.1;  
+        const radialForce = toLightNormalized.multiplyScalar(radialForceMagnitude); 
+        this.applyForce(radialForce); 
+        const tangentialSpeed = 0.05;  
+        const tangentialForce = perpendicular.multiplyScalar(tangentialSpeed);
+        this.applyForce(tangentialForce);
+    }
+    
+
 
 
     setLightPoint(point){
@@ -177,6 +195,11 @@ export class Boid{
     getRandomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
       }
+    
+    getRandomDirection() {
+        return Math.random() < 0.5 ? -1 : 1; // Returns -1 or 1 with equal probability
+    }
+    
       
       getRandomFloat(min, max) {
         return Math.random() * (max - min) + min;
