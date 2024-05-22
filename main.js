@@ -153,10 +153,10 @@ function createObjects() {
   //environment.loadOBJEnvironmentModel('models/Campfire.obj');
 
   // LIGHTBULB
-  const bulbMass = 10;
+  const bulbMass = 1.2;
   const bulbRadius = 0.5;
   const pos = new THREE.Vector3(0, 0, 0);
-  const quat = new THREE.Quaternion( 0, 0, 0, 1 );
+  const quat = new THREE.Quaternion(0, 0, 0, 1);
 
   // create lamp group
   let fullLampGroup = new THREE.Group();
@@ -166,7 +166,7 @@ function createObjects() {
   createLightBase(fullLampGroup, bulbRadius, quat);
   // light model
   lightbulb = makeBulbGroup();
-    // creates a sphere as a temporary reference for light bulb interaction 
+  // creates a sphere as a temporary reference for light bulb interaction 
   // const lightbulb_geometry = new THREE.SphereGeometry(bulbRadius);
   // const lightbulb_material = new THREE.MeshPhongMaterial({ color: 0xfddc5c, transparent: true });
   // const lightbulb = new THREE.Mesh(lightbulb_geometry, lightbulb_material);
@@ -180,7 +180,7 @@ function createObjects() {
   boidManager.setLightPoint(lightPoint);
 
   // bulb physics 
-  const bulbShape = new Ammo.btSphereShape(bulbRadius*0.5);
+  const bulbShape = new Ammo.btSphereShape(bulbRadius * 0.5);
   bulbShape.setMargin(margin - 0.3);
   createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
   lightbulb.userData.physicsBody.setFriction(0.5);
@@ -195,7 +195,9 @@ function createObjects() {
 function makeBulbGroup() {
   var yTranslation = 1.2;
 
-  var group = new THREE.Group();
+  let transparentMaterial = new THREE.MeshBasicMaterial()
+  transparentMaterial.transparent = true;
+  let group = new THREE.Mesh(new THREE.SphereGeometry(0.1), transparentMaterial);
   const intensity = 3.0;
   //main bulb
   var bulbGeometry = new THREE.SphereGeometry(1, 32, 32);
@@ -208,8 +210,14 @@ function makeBulbGroup() {
   });
 
   bulbLight.add(new THREE.Mesh(bulbGeometry, bulbMat));
-  bulbLight.position.set(0, -1+yTranslation, 0);
+  bulbLight.position.set(0, -1 + yTranslation, 0);
   bulbLight.castShadow = true;
+
+  // bulb physics 
+  // const bulbShape1 = new Ammo.btSphereShape(bulbRadius * 0.5);
+  // bulbShape1.setMargin(margin - 0.3);
+  // createRigidBody(bulbLight, bulbShape1, bulbMass, pos, quat);
+  // bulbLight.userData.physicsBody.setFriction(0.5);
 
   var d = 200;
 
@@ -231,7 +239,7 @@ function makeBulbGroup() {
   });
 
   var bStem = new THREE.Mesh(bulbStem, stemMat);
-  bStem.position.set(0, -0.1+yTranslation, 0);
+  bStem.position.set(0, -0.1 + yTranslation, 0);
   bStem.castShadow = true;
   bStem.receiveShadow = true;
 
@@ -243,7 +251,7 @@ function makeBulbGroup() {
   });
 
   var plug = new THREE.Mesh(bulbPlug, plugMat);
-  plug.position.set(0, 0.2+yTranslation, 0);
+  plug.position.set(0, 0.2 + yTranslation, 0);
   plug.receiveShadow = true;
   plug.castShadow = true;
 
@@ -254,7 +262,7 @@ function makeBulbGroup() {
     color: 0xe8d905
   });
   var plugTop = new THREE.Mesh(topGeo, topMat);
-  plugTop.position.set(0, 0.75+yTranslation, 0);
+  plugTop.position.set(0, 0.75 + yTranslation, 0);
   plugTop.receiveShadow = true;
   plugTop.castShadow = true;
 
@@ -269,7 +277,7 @@ function makeBulbGroup() {
   for (var i = 0; i < 3; i++) {
     var ring = new THREE.Mesh(ringGeo, ringMat);
     ring.rotation.x = -Math.PI / 2;
-    ring.position.set(0, ringY+yTranslation, 0);
+    ring.position.set(0, ringY + yTranslation, 0);
     group.add(ring);
 
     ringY += 0.15;
@@ -279,14 +287,14 @@ function makeBulbGroup() {
   var topRingGeo = new THREE.TorusGeometry(0.49, 0.05, 16, 100);
 
   var topRing = new THREE.Mesh(topRingGeo, ringMat);
-  topRing.position.set(0, 0.75+yTranslation, 0);
+  topRing.position.set(0, 0.75 + yTranslation, 0);
   topRing.rotation.x = -Math.PI / 2;
 
   //bottom ring
   var botRingGeo = new THREE.TorusGeometry(0.5, 0.05, 16, 100);
 
   var botRing = new THREE.Mesh(botRingGeo, ringMat);
-  botRing.position.set(0, 0.15+yTranslation, 0);
+  botRing.position.set(0, 0.15 + yTranslation, 0);
   botRing.rotation.x = -Math.PI / 2;
 
   //add to group
@@ -305,10 +313,10 @@ function makeBulbGroup() {
   return group;
 }
 
-function createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group, bulbRadius) {
+function createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group) {
   // ROPE
   // creates rope graphic object
-  const ropeMass = 5;
+  const ropeMass = 3;
   const ropePos = (lightbulb.position);
   ropePos.x = 0;
   ropePos.y = 5 - ropeLength;
@@ -366,10 +374,10 @@ function createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group
   // hinge = new Ammo.btHingeConstraint(pylon.userData.physicsBody, arm.userData.physicsBody, pivotA, pivotB, axis, axis, true);
   // physicsWorld.addConstraint(hinge, true);
 
-    // Glue the rope extremes to the ball and the arm
-    const influence = 1;
-    ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
-    ropeSoftBody.appendAnchor(ropeNumSegments, base.userData.physicsBody, true, influence);
+  // Glue the rope extremes to the ball and the arm
+  const influence = 1;
+  ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
+  ropeSoftBody.appendAnchor(ropeNumSegments, base.userData.physicsBody, true, influence);
 
   return ropeSoftBody;
 }
@@ -377,14 +385,15 @@ function createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group
 function createLightBase(group, bulbRadius, quat) {
   // LIGHT BASE
   let baseMass = 0;
-  const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xA9A9A9 });
+  let baseMaterial = new THREE.MeshPhongMaterial();
+  baseMaterial.color = new THREE.Color(0xffffff);
   base = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.2, 32), baseMaterial);
   base.position.x = 0;
   base.position.y = 5;
   base.position.z = 0;
   base.castShadow = true;
   base.receiveShadow = true;
-  const baseShape = new Ammo.btBoxShape(bulbRadius);
+  const baseShape = new Ammo.btBoxShape(0.2);
   baseShape.setMargin(margin);
   createRigidBody(base, baseShape, baseMass, base.position, quat);
   base.userData.physicsBody.setFriction(0.5);
@@ -422,7 +431,7 @@ function CreateScene() {
   }
 }
 
-// create a rigidbody for phaysics application
+// create a rigidbody for physics application
 function createRigidBody(threeObject, physicsShape, mass, pos, quat) {
 
   threeObject.position.copy(pos);
@@ -519,11 +528,8 @@ function updatePhysics(deltaTime) {
       const q = transformAux1.getRotation();
       objThree.position.set(p.x(), p.y(), p.z());
       objThree.quaternion.set(q.x(), q.y(), q.z(), q.w());
-
     }
-
   }
-
 }
 
 
@@ -588,7 +594,6 @@ var deltaTime;
 var MyUpdateLoop = function () {
   deltaTime = clock.getDelta();
   CreateScene();
-  //TODO update physics
   for (let i = 0; i < scene.children.length; i++) {
     if (lightbulb != null) {
       updatePhysics(deltaTime);
