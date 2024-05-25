@@ -111,10 +111,10 @@ export class BoidManager {
             const avoidanceForce = boid.avoidanceBehaviour(nearbyBoids); 
             let distanceToLight = boid.position.distanceTo(this.lightPoint);
 
-            if (distanceToLight <= this.minDistance_toLight){
+            if (distanceToLight <= this.minDistance_toLight && !flyAway){
                 flyAway = true;
             }
-            if(distanceToLight>=7.5){
+            if(distanceToLight>=7.5&& flyAway){
                 flyAway = false;
             }
     
