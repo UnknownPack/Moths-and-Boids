@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Boid } from './Boid.js'; 
+import { mothEater } from './mothEater.js';
 import { spatialGrid } from './SpatialPartition.js'; 
 import { OBJLoader } from './build/loaders/OBJLoader.js';
 import { MTLLoader } from './build/loaders/MTLLoader.js';
@@ -10,6 +11,7 @@ export class BoidManager {
         this.numberOfBoids = numberOfBoids;
         this.scene = scene;
         this.boids = [];
+        this.mothEaters = [];
         this.obstacles = obstacles;
 
         this.velocity = velocity;
@@ -19,7 +21,7 @@ export class BoidManager {
         this.lightPoint = null;
         this.lightAttraction = lightAttraction;
         this.spawnRadius = spawnRadius;
-        this.minDistance_toLight = 5;
+        this.minDistance_toLight = 1.5;
         this.targetMinDistance_toLight = this.getRandomInt(3, 10); // Initializing with a random target initially
 
         const gridSize = new THREE.Vector3(30, 30, 30);
@@ -41,6 +43,28 @@ export class BoidManager {
         }, null, (error) => {
             console.error('An error happened during GLTF loading:', error);
         });
+
+        ///////////////////////////////////////////////////////////
+
+        const mtlLoader = new MTLLoader();
+        mtlLoader.load('models/mothEater/flyer/VAMP_BAT.MTL', (materials) => {
+            materials.preload();
+
+            const objLoader = new OBJLoader();
+            objLoader.setMaterials(materials);
+            objLoader.load('models/mothEater/flyer/VAMP_BAT.OBJ', (obj) => {
+                obj.traverse((child) => {
+                    if (child.isMesh) {
+                        this.mothEaterOBJ = child.geometry;
+                        this.mothEaterMAT = child.material; 
+                    }
+                });
+            }, null, (error) => {
+                console.error('An error happened during OBJ loading:', error);
+            });
+        }, null, (error) => {
+            console.error('An error happened during MTL loading:', error);
+        });
     }
 
     makeBoids() {
@@ -56,20 +80,27 @@ export class BoidManager {
                 this.getRandomFloat(-this.velocity, this.velocity),
                 this.getRandomFloat(-this.velocity, this.velocity)
             ).normalize().multiplyScalar(this.maxSpeed);
-
-            let searhR = this.getRandomInt(-this.searchRadius, this.searchRadius)
-
-            const boid = new Boid(spawnPosition, boidVelocity, this.maxSpeed, this.maxForce, searhR, this.lightPoint, this.lightAttraction, this.scene, this.mothGeometry, this.mothMaterial);
+            const boid = new Boid(spawnPosition, boidVelocity, this.maxSpeed, this.maxForce, this.searchRadius, this.lightPoint, this.lightAttraction, this.scene, this.mothGeometry, this.mothMaterial);
 
             this.boids.push(boid);
         }
     }
 
     updateBoids(deltaTime) { 
+        var flyAway = false;
         this.grid.clear();
         for (const boid of this.boids) {
             this.grid.insertBoidAtPosition(boid, boid.givePos());
+            let boidSpecialKey = this.grid._cellKey(boid.position.x, boid.position.y, boid.position.z);
+            boid.updateSpatialKey(boidSpecialKey);
         } 
+
+        for (const mothEater of this.mothEaters) {
+            this.grid.insertBoidAtPosition(mothEater, mothEater.givePos());
+            let mothEaterSpacialKey = this.grid._cellKey(mothEater.position.x, mothEater.position.y, mothEater.position.z);
+            mothEater.updateSpatialKey(mothEaterSpacialKey);
+        } 
+
         this.minDistance_toLight += (this.targetMinDistance_toLight - this.minDistance_toLight) * 0.1;  
 
         for (const boid of this.boids) {
@@ -78,20 +109,78 @@ export class BoidManager {
 
             const lightAttractionForce = boid.attractionToLight();
             const avoidanceForce = boid.avoidanceBehaviour(nearbyBoids); 
-            const distanceToLight = boid.position.distanceTo(this.lightPoint);
+            let distanceToLight = boid.position.distanceTo(this.lightPoint);
 
-            if (distanceToLight > this.minDistance_toLight) {
+            if (distanceToLight <= this.minDistance_toLight){
+                flyAway = true;
+            }
+            if(distanceToLight>=7.5){
+                flyAway = false;
+            }
+    
+            if(flyAway == false){
                 boid.applyForce(lightAttractionForce, deltaTime); 
-            }  
+            }
+            else if (flyAway == true){ 
+                let lightForce_Inverse = lightAttractionForce.multiplyScalar(-1);
+                boid.applyForce(lightForce_Inverse, deltaTime);
+            }
             boid.applyForce(avoidanceForce, deltaTime);
 
             boid.update();
             boid.boieRender();
         } 
+
+        for (const mothEater of this.mothEaters){
+            mothEater.update(deltaTime);
+            if(!this.mothEaters.length === 0){
+                decimate(mothEater.giveSpatialKey(), mothEater);
+            }
+        }
+
+
         if (Math.random() < 0.1) {  
             this.targetMinDistance_toLight = this.getRandomInt(3, 10);
         }
     }
+
+    decimate(spatialKey, me) {
+        if (this.grid.cells[spatialKey]) { 
+            for (let i = this.grid.cells[spatialKey].length - 1; i >= 0; i--) {
+                const boid = this.grid.cells[spatialKey][i];  
+        
+                if (boid !== me) { 
+                    if (me.position.distanceTo(boid.position) <= me.eatRange) {
+                        this.scene.remove(boid); 
+                        boid.geometry.dispose();
+                        boid.material.dispose(); 
+                        this.grid.cells[spatialKey].splice(i, 1); // Remove boid from the cell array
+    
+                        const index = this.boids.indexOf(boid); // Also remove boid from the main boids array
+                        if (index !== -1) {
+                            this.boids.splice(index, 1);
+                        }
+        
+                        console.log("Boid removed");
+                    }
+                }
+            }
+        }
+    }
+
+    spawnFlyer_mothEater(){
+        let position = new THREE.Vector3(0,1000, getRandomInt(-3,4));
+        let endPos = new THREE.Vector3(0,-1000, getRandomInt(-3,4));
+        let speed = getRandomFloat(0.5,2.5);
+        let eatRange = 3;  
+        const newMothEater = new mothEater(position, position, endPos, speed, eatRange, this.mothEaterOBJ, this.mothEaterMAT, this.scene); 
+        this.mothEaters.push(newMothEater);
+    }
+
+    manageFlyer_mothEater(){
+
+    }
+    
 
     setLightPoint(lightPoint) {   
         this.lightPoint = lightPoint;
@@ -107,7 +196,6 @@ export class BoidManager {
         }
     }
     
-
     addObjectToGrid(object) {
         this.otherObjects.add(object);
     }
