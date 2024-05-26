@@ -596,7 +596,7 @@ function initComputeRenderer() {
 // Create boid manager
 //these paramters can be changed
 
-const numberOfBoids = 1000;
+const numberOfBoids = 1500;
 const obstacles = [];
 const velocity = 0.5;
 const maxSpeed = 0.1;
