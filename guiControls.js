@@ -1,4 +1,4 @@
-import { GUI } from "../lib/dat.gui.module.js";
+import { GUI } from './build/lil-gui.module.min.js';
 
 export default class ControlsUI {
     constructor(){

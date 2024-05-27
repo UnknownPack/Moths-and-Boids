@@ -6,6 +6,8 @@ import { BoidManager } from './BoidManager.js';
 import { GLTFLoader } from './build/loaders/GLTFLoader.js';
 import { GPUComputationRenderer } from './build/misc/GPUComputationRenderer.js';
 import { Sky } from './build/environment/Sky.js';
+import ControlsUI from './guiControls.js';
+import { GUI } from './build/lil-gui.module.min.js';
 
 // GRAPHICS CONST
 let camera, controls, renderer;
@@ -28,6 +30,11 @@ let lightbulb;
 let lightPoint = new THREE.Vector3(0, 5, 3);
 let transformAux1;
 
+
+let guiControls = {
+  totalDayTime: 10
+};
+
 //let armMovement = 0;
 
 // Inits physics environment
@@ -48,8 +55,19 @@ function init() {
   createObjects();
   initInput();
   initSky();
+  initGUI();
   // DEBUGGING
   console.log(scene.children);
+}
+
+function initGUI(){
+  const gui = new GUI();
+  gui.add(guiControls, 'totalDayTime', 5, 60, 1).name('totalDayTime').onChange(guiChanged);
+  new ControlsUI();
+
+}
+function guiChanged(value){
+  console.log(`Day duration updated to ${value} seconds`);
 }
 
 function initGraphics() {
@@ -138,14 +156,16 @@ function updateSky(timeofDay){
   uniforms['moonPosition'].value.copy(moon);
 
 
-  if(timeofDay > 0.5){
-
+  if(timeofDay > 0.5 && timeOfDay < 0.85){
+    uniforms[ 'rayleigh' ].value = 0.1;
     renderer.toneMappingExposure = 0.3;
-    console.log("night time");
+  }else if (timeOfDay > 0.85){
+    renderer.toneMappingExposure = 0.4;
   }
   //renderer.toneMappingExposure = Math.max(0.1, 0.6);
 }
 function resetSky(){
+  uniforms[ 'rayleigh' ].value = 0.3;
   renderer.toneMappingExposure = 0.3;
   const elevation = 0; 
   const azimuth = 30; 
@@ -499,7 +519,8 @@ function animate() {
   const now = performance.now();
   const delta = clock.getDelta();
   elapsedTime += delta;
-  const totalDayTime = 5; //24seconds
+  //const totalDayTime = 5; //24seconds
+  const totalDayTime = guiControls.totalDayTime;
   const timeOfDay = (elapsedTime % totalDayTime) / totalDayTime; // 0-1
   if(elapsedTime >= totalDayTime){
     resetSky();
