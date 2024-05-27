@@ -63,11 +63,11 @@ function init() {
 function initGUI(){
   const gui = new GUI();
   gui.add(guiControls, 'totalDayTime', 5, 60, 1).name('totalDayTime').onChange(guiChanged);
-  new ControlsUI();
+  //new ControlsUI();
 
 }
-function guiChanged(value){
-  console.log(`Day duration updated to ${value} seconds`);
+function guiChanged(){
+  //console.log(`Day duration updated to ${value} seconds`);
 }
 
 function initGraphics() {
@@ -156,13 +156,12 @@ function updateSky(timeofDay){
   uniforms['moonPosition'].value.copy(moon);
 
 
-  if(timeofDay > 0.5 && timeOfDay < 0.85){
+  if(timeofDay > 0.5 && timeofDay < 1){
     uniforms[ 'rayleigh' ].value = 0.1;
     renderer.toneMappingExposure = 0.3;
-  }else if (timeOfDay > 0.85){
+  }else if (timeofDay > 0.85){
     renderer.toneMappingExposure = 0.4;
   }
-  //renderer.toneMappingExposure = Math.max(0.1, 0.6);
 }
 function resetSky(){
   uniforms[ 'rayleigh' ].value = 0.3;
