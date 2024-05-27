@@ -63,7 +63,7 @@ function init() {
 function initGUI(){
   const gui = new GUI();
   gui.add(guiControls, 'totalDayTime', 5, 60, 1).name('totalDayTime').onChange(guiChanged);
-  //new ControlsUI();
+  //gui.add();
 
 }
 function guiChanged(){
@@ -187,11 +187,11 @@ function createObjects() {
 
   // ENVIRONMENT
   var environment = new EnvironmentGenerator(scene);
-  environment.loadGLTFEnvironmentModel('models/american_style_house/scene.gltf');
-  environment.loadGLTFEnvironmentModel('models/low_poly_wood_fence_on_grass/scene.gltf');
-  environment.loadGLTFEnvironmentModel('models/stylized_bush/scene.gltf');
-  //environment.loadGLTFEnvironmentModel('models/forest_house/scene.gltf');
-  //environment.loadOBJEnvironmentModel('models/Campfire.obj');
+  //environment.loadGLTFEnvironmentModel('models/american_style_house/scene.gltf');
+  //environment.loadGLTFEnvironmentModel('models/low_poly_wood_fence_on_grass/scene.gltf');
+  //environment.loadGLTFEnvironmentModel('models/stylized_bush/scene.gltf');
+  environment.loadGLTFEnvironmentModel('models/forest_house/scene.gltf');
+  
 
   // LIGHTBULB
   const bulbMass = 1.2;

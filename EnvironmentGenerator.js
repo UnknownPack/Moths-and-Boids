@@ -60,8 +60,13 @@ export class EnvironmentGenerator{
             rot.makeRotationY(270*Math.PI/180);
             combined.multiply(rot);
         }else if(filePath == 'models/forest_house/scene.gltf'){
+            sca.makeScale(200/size.length(),200/size.length(),200/size.length());           
             rot.makeRotationY(90*Math.PI/180);
+            tra.makeTranslation (-center.x,-center.y,-center.z);
+            tra.makeTranslation(0.035,-0.025,-0.005);
+
             combined.multiply(rot);
+            console.log("forest");
         }else if(filePath == 'models/low_poly_wood_fence_on_grass/scene.gltf'){
             sca.makeScale(300/size.length(),300/size.length(),300/size.length());
             tra.makeTranslation (-center.x,-center.y-10,-center.z-50);
