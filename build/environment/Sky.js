@@ -56,7 +56,6 @@ Sky.SkyShader = {
 		'sunPosition': { value: new Vector3() },
 		'up': { value: new Vector3( 0, 1, 0 ) },
 		'moonPosition': { value: new Vector3() },
-		'moonIntensity': { value: 0.1 },
 	},
 
 	vertexShader: /* glsl */`
@@ -106,7 +105,7 @@ Sky.SkyShader = {
 		}
 		float moonIntensity(float zenithAngleCos) {
 			zenithAngleCos = clamp(zenithAngleCos, -1.0, 1.0);
-			return 0.1 * EE * max(0.0, 1.0 - pow(e, -((cutoffAngle - acos(zenithAngleCos)) / steepness)));
+			return 0.05 * EE * max(0.0, 1.0 - pow(e, -((cutoffAngle - acos(zenithAngleCos)) / steepness)));
 		  }
 
 		vec3 totalMie( float T ) {
@@ -235,8 +234,8 @@ Sky.SkyShader = {
 			// composition + solar disc
 			float sundisk = smoothstep( sunAngularDiameterCos, sunAngularDiameterCos + 0.00002, cosThetaSun );
 			L0 += ( vSunE * 19000.0 * Fex ) * sundisk;
-			float moondisk = smoothstep(sunAngularDiameterCos, sunAngularDiameterCos + 0.00002, cosThetaMoon);
-      		L0 += (vMoonE * 19000.0 * Fex) * moondisk;
+			//float moondisk = smoothstep(sunAngularDiameterCos, sunAngularDiameterCos + 0.00002, cosThetaMoon);
+      		//L0 += (vMoonE * 19000.0 * Fex) * moondisk*0.001;
 
 			//vec3 texColor = ( Lin + L0 ) * 0.04 + vec3( 0.0, 0.0003, 0.00075 );
 			vec3 texColor = (LinSun + LinMoon + L0) * 0.04 + vec3(0.0, 0.0003, 0.00075);

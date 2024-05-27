@@ -115,7 +115,7 @@ function initSky(){
   moon = new THREE.Vector3();
 
   uniforms = sky.material.uniforms;
-  renderer.toneMappingExposure = 0.4; // 0-1
+  renderer.toneMappingExposure = 0.3; // 0-1
   uniforms[ 'turbidity' ].value = 5; // 0-20
   uniforms[ 'rayleigh' ].value = 3; //0-4
 	uniforms[ 'mieCoefficient' ].value = 0.033; // 0-0.1
@@ -140,23 +140,25 @@ function updateSky(timeofDay){
 
   if(timeofDay > 0.5){
 
+    renderer.toneMappingExposure = 0.3;
     console.log("night time");
   }
   //renderer.toneMappingExposure = Math.max(0.1, 0.6);
 }
 function resetSky(){
+  renderer.toneMappingExposure = 0.3;
   const elevation = 0; 
   const azimuth = 30; 
   const phi = THREE.MathUtils.degToRad( 90 - elevation );
 	const theta = THREE.MathUtils.degToRad( azimuth );
   sun.setFromSphericalCoords( 1, phi, theta );
   uniforms[ 'sunPosition' ].value.copy( sun );
-/*
+
   const moonElevation = 0; 
   const moonPhi = THREE.MathUtils.degToRad(90 - moonElevation);
   const moonTheta = THREE.MathUtils.degToRad(azimuth);
   moon.setFromSphericalCoords(1, moonPhi, moonTheta);
-  uniforms['moonPosition'].value.copy(moon);*/
+  uniforms['moonPosition'].value.copy(moon);
 
 }
 
