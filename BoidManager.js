@@ -13,7 +13,7 @@ export class BoidManager {
         this.boids = [];
         this.mothEaters = [];
         this.obstacles = obstacles;
-
+        this.mothCount = this.numberOfBoids;
         this.velocity = velocity;
         this.maxSpeed = maxSpeed;
         this.maxForce = maxForce;
@@ -178,21 +178,81 @@ export class BoidManager {
         this.mothEaters.push(newMothEater);
     }
 
-    manageFlyer_mothEater(){
-
+    giveMothCount(){
+        return this.mothCount;
     }
+
+    setMothCount(newMothCount){
+        const previousMothCount = this.mothCount;
+        this.mothCount = newMothCount;
+        if(previousMothCount< this.mothCount){
+            this.addMoreMoths(this.mothCount - previousMothCount);
+        }
+        else if (previousMothCount > this.mothCount){
+            this.removeMoths(previousMothCount - this.mothCount);
+        }
+    }
+
+    addMoreMoths(count) {
+        for (let i = 0; i < count; i++) {
+            let spawnPosition = new THREE.Vector3(
+                this.getRandomInt(-this.spawnRadius, this.spawnRadius),
+                this.getRandomInt(-this.spawnRadius, this.spawnRadius),
+                this.getRandomInt(-this.spawnRadius, this.spawnRadius)
+            );
+
+            const boidVelocity = new THREE.Vector3(
+                this.getRandomFloat(-this.velocity, this.velocity),
+                this.getRandomFloat(-this.velocity, this.velocity),
+                this.getRandomFloat(-this.velocity, this.velocity)
+            ).normalize().multiplyScalar(this.maxSpeed);
+            const boid = new Boid(spawnPosition, boidVelocity, this.maxSpeed, this.maxForce, this.searchRadius, this.lightPoint, this.lightAttraction, this.scene, this.mothGeometry, this.mothMaterial);
+
+            this.boids.push(boid);
+        }
+    }
+
+    removeMoths(count) {
+        for (let i = 0; i < count; i++) {
+            if (this.boids.length != 0) { 
+                const boidToRemove = this.boids.pop(); 
+                if (boidToRemove) {
+                    this.scene.remove(boidToRemove);
+    
+                    // Dispose geometry and material if they exist because some objects
+                    if (boidToRemove.geometry) {
+                        boidToRemove.geometry.dispose();
+                    }
+                    if (boidToRemove.material) {
+                        boidToRemove.material.dispose();
+                    }
+    
+                    // Remove boid from the spatial grid
+                    const spatialKey = boidToRemove.giveSpatialKey();
+                    if (this.grid.cells[spatialKey]) {
+                        const index = this.grid.cells[spatialKey].indexOf(boidToRemove);
+                        if (index !== -1) {
+                            this.grid.cells[spatialKey].splice(index, 1);
+                        }
+                    }
+    
+                    console.log("Boid removed");
+                } else {
+                    console.warn("Boid to remove is undefined.");
+                }
+            } else {
+                console.warn("No more boids to remove.");
+                break;
+            }
+        }
+    }
+    
+    
     
 
     setLightPoint(lightPoint) {   
         this.lightPoint = lightPoint;
         for (const boid of this.boids) {
-            //var x = this.getRandomFloat(0, 3);
-            //var y = this.getRandomFloat(0, 3);
-            //var z = this.getRandomFloat(0, 3);
-            //var futurePower = new Vector3(x, y, z);
-            ///var boidLightPoint = lightPoint.copy();  
-            //boidLightPoint.add(futurePower);  
-            //this.lightPoint
             boid.setLightPoint(boidLightPoint);
         }
     }

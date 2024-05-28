@@ -595,7 +595,7 @@ function updatePhysics(deltaTime) {
 // Create boid manager
 //these parameters can be changed
 
-const numberOfBoids = 100;
+const numberOfBoids = 1000;
 const obstacles = [];
 const velocity = 0.5;
 const maxSpeed = 0.1;
@@ -689,7 +689,12 @@ window.addEventListener('resize', MyResize);
 
 const gui = new dat.GUI();
 
-// Add a dropdown control for selecting house types
+const mothControls = {
+  mothCount: boidManager.giveMothCount()
+}; 
+gui.add(mothControls, 'mothCount', 0, 1000).name('Moth Count').onChange(function (newValue) {
+  boidManager.setMothCount(newValue);
+});
 
 gui.add(gcontrols, 'house', houses).name('House').listen()
   .onChange(function (newValue) {
