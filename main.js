@@ -278,10 +278,10 @@ function createObjects() {
   // ENVIRONMENT
 
   var environment = new EnvironmentGenerator(scene);
-  //environment.loadGLTFEnvironmentModel('models/american_style_house/scene.gltf');
-  //environment.loadGLTFEnvironmentModel('models/low_poly_wood_fence_on_grass/scene.gltf');
-  //environment.loadGLTFEnvironmentModel('models/stylized_bush/scene.gltf');
-  environment.loadGLTFEnvironmentModel('models/forest_house/scene.gltf');
+  environment.loadGLTFEnvironmentModel('models/american_style_house/scene.gltf');
+  environment.loadGLTFEnvironmentModel('models/low_poly_wood_fence_on_grass/scene.gltf');
+  environment.loadGLTFEnvironmentModel('models/stylized_bush/scene.gltf');
+  //environment.loadGLTFEnvironmentModel('models/forest_house/scene.gltf');
 
   // LIGHTBULB
   const bulbMass = 12;
@@ -305,6 +305,7 @@ function createObjects() {
   lightPoint = base.position;
   lightPoint.setY(lightPoint.y - 2);
   boidManager.setLightPoint(lightPoint);
+
 
   // create bulb physics 
   const bulbShape = new Ammo.btSphereShape(bulbRadius);
@@ -530,6 +531,7 @@ function animate() {
   }
   if (now - lastSkyUpdate > updateInterval) {
     updateSky(timeOfDay);
+    updateBoidBehaviorBasedOnTime(timeOfDay);
     lastSkyUpdate = now;
   }
 
@@ -577,40 +579,6 @@ function updatePhysics(deltaTime) {
 }
 
 //////////////
-//GPUCompute//
-//////////////
-/*
-function initComputeRenderer() {
-  const gpuCompute = new GPUComputationRenderer( 1024, 1024, renderer );
-  const dtPosition = gpuCompute.createTexture();
-  const dtVelocity = gpuCompute.createTexture();
-  fillPositionTexture( dtPosition );
-  fillVelocityTexture( dtVelocity );
- 
-  velocityVariable = gpuCompute.addVariable( 'textureVelocity', document.getElementById( 'fragmentShaderVelocity' ).textContent, dtVelocity );
-  positionVariable = gpuCompute.addVariable( 'texturePosition', document.getElementById( 'fragmentShaderPosition' ).textContent, dtPosition );
- 
-  gpuCompute.setVariableDependencies( velocityVariable, [ positionVariable, velocityVariable ] );
-  gpuCompute.setVariableDependencies( positionVariable, [ positionVariable, velocityVariable ] );
- 
-  positionUniforms = positionVariable.material.uniforms;
-  velocityUniforms = velocityVariable.material.uniforms;
- 
-  positionUniforms[ 'time' ] = { value: 0.0 };
-  positionUniforms[ 'delta' ] = { value: 0.0 };
-  velocityUniforms[ 'time' ] = { value: 1.0 };
-  velocityUniforms[ 'delta' ] = { value: 0.0 };
-  velocityUniforms[ 'testing' ] = { value: 1.0 };
-  velocityUniforms[ 'separationDistance' ] = { value: 1.0 };
-  velocityUniforms[ 'alignmentDistance' ] = { value: 1.0 };
-  velocityUniforms[ 'cohesionDistance' ] = { value: 1.0 };
-  velocityUniforms[ 'freedomFactor' ] = { value: 1.0 };
-  velocityUniforms[ 'predator' ] = { value: new THREE.Vector3() };
-  velocityVariable.material.defines.BOUNDS = BOUNDS.toFixed( 2 );
-}
-*/
-
-//////////////
 //  Boids   //
 //////////////
 
@@ -655,7 +623,20 @@ var MyUpdateLoop = function () {
   //controls.update();
 
   //requestAnimationFrame(MyUpdateLoop);
+
 };
+
+function updateBoidBehaviorBasedOnTime(timeOfDay){
+  if(timeOfDay > 0.5 && timeOfDay < 1){
+    console.log(boidManager.velocity);
+    boidManager.updateVelocity(0.8);
+    boidManager.updateLightAttraction(30);
+  }else if(timeOfDay <= 0.5){
+    console.log(boidManager.velocity);
+    boidManager.updateVelocity(0.1);
+    boidManager.updateLightAttraction(2);
+  }
+}
 
 //requestAnimationFrame(MyUpdateLoop);
 

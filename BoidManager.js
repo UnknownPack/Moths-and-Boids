@@ -208,6 +208,20 @@ export class BoidManager {
         return Math.random() * (max - min) + min;
     }
 
+    updateVelocity(velocity){
+        this.velocity = velocity;
+        for (const boid of this.boids) {
+            boid.velocity = boid.velocity.normalize().multiplyScalar(velocity);
+        }
+    }
+
+    updateLightAttraction(attraction){
+        this.lightAttraction = attraction;
+        for (const boid of this.boids) {
+            boid.setLightAttraction(attraction);
+        }
+    }
+
 
 }
 

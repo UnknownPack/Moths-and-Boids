@@ -201,9 +201,14 @@ export class Boid{
     }
     
       
-      getRandomFloat(min, max) {
+    getRandomFloat(min, max) {
         return Math.random() * (max - min) + min;
-      }
+    }
+
+    setLightAttraction(attraction) {
+        this.lightAttraction = attraction;
+    }
+
   } 
 
   function easeInOut(t) {
