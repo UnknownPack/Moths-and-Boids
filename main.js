@@ -19,28 +19,47 @@ let broadphase;
 let solver;
 let softBodySolver;
 let physicsWorld;
+let tmpTrans;
 
 const margin = 0.05;
 const rigidBodies = [];
+var environment;
 let hinge;
 let base;
 let rope;
 let lightbulb;
-let lightPoint = new THREE.Vector3(0, 5, 3);
+let isLightbulbThere = false, interactionHandlerDefined = false;
+let lightPoint //= new THREE.Vector3(0, 5, 3);
+let ropeSoftBody;
+var affectedObjects = [];
 let transformAux1;
 
 // GUI Controls
-let gui;
+
 let lightSettings = {
   brightness: 1.0
 };
+let baseObject = null;
+const STATE = { DISABLE_DEACTIVATION: 4 }
+//let armMovement = 0;
+let interactionHandler;
 
-// Inits physics environment
+// GUI
+// default controls
+var gcontrols = {
+  house: "american"
+}
+
+// initialze physics environment
+// Ensure Ammo.js is fully loaded and initialized
 Ammo().then(function (AmmoLib) {
   Ammo = AmmoLib;
-  init();
-  animate();
-  //requestAnimationFrame(MyUpdateLoop);
+
+  init()
+  animate()
+
+}).catch(error => {
+  console.error("Error initializing Ammo.js:", error);
 });
 
 function init() {
@@ -49,12 +68,20 @@ function init() {
   createObjects();
   initInput();
   initSky();
-  // DEBUGGING
-  console.log(scene.children);
 }
 
 function initGraphics() {
   var ratio = window.innerWidth / window.innerHeight;
+
+  //create a xyz axis
+  const axesHelper = new THREE.AxesHelper(5);
+  axesHelper.visible = false;
+  if (scene != undefined) {
+    scene.add(axesHelper);
+  } else {
+    init();
+  }
+
   //create the perspective camera
   camera = new THREE.PerspectiveCamera(45, ratio, 0.1, 1000);
   camera.position.set(0, 0, 100);
@@ -77,10 +104,7 @@ function initGraphics() {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
   document.body.appendChild(renderer.domElement);
-
-  // Add GUI controls
-  gui = new GUI();
-  gui.add(lightSettings, 'brightness', 0, 5).name('Light Brightness').onChange(updateLightBrightness);
+  
 
   // Orbit Controls
   controls = new OrbitControls(camera, renderer.domElement);
@@ -103,73 +127,69 @@ function updateLightBrightness() {
 
 function initPhysics() {
   // Physics configuration
-  collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
-  dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
-  broadphase = new Ammo.btDbvtBroadphase();
-  solver = new Ammo.btSequentialImpulseConstraintSolver();
-  softBodySolver = new Ammo.btDefaultSoftBodySolver();
-  physicsWorld = new Ammo.btSoftRigidDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration, softBodySolver);
-  physicsWorld.setGravity(new Ammo.btVector3(0, gravityConstant, 0));
-  physicsWorld.getWorldInfo().set_m_gravity(new Ammo.btVector3(0, gravityConstant, 0));
-
-  transformAux1 = new Ammo.btTransform();
+  try {
+    collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
+    dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
+    broadphase = new Ammo.btDbvtBroadphase();
+    solver = new Ammo.btSequentialImpulseConstraintSolver();
+    softBodySolver = new Ammo.btDefaultSoftBodySolver();
+    physicsWorld = new Ammo.btSoftRigidDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration, softBodySolver);
+    physicsWorld.setGravity(new Ammo.btVector3(0, gravityConstant, 0));
+    physicsWorld.getWorldInfo().set_m_gravity(new Ammo.btVector3(0, gravityConstant, 0));
+    transformAux1 = new Ammo.btTransform();
+  } catch (e) {
+    console.error("Error during physics initialization:", e);
+  }
 }
 
 let sky, sun, uniforms;
-function initSky(){
+function initSky() {
   sky = new Sky();
-	sky.scale.setScalar( 450); 
-	scene.add( sky );
+  sky.scale.setScalar(450);
+  scene.add(sky);
   sun = new THREE.Vector3();
 
   uniforms = sky.material.uniforms;
   renderer.toneMappingExposure = 0.4; // 0-1
-  uniforms[ 'turbidity' ].value = 5; // 0-20
-  uniforms[ 'rayleigh' ].value = 3; //0-4
-	uniforms[ 'mieCoefficient' ].value = 0.033; // 0-0.1
-	uniforms[ 'mieDirectionalG' ].value = 0.63; //0-1
+  uniforms['turbidity'].value = 5; // 0-20
+  uniforms['rayleigh'].value = 3; //0-4
+  uniforms['mieCoefficient'].value = 0.033; // 0-0.1
+  uniforms['mieDirectionalG'].value = 0.63; //0-1
   updateSky(0);
 }
 
-function updateSky(timeofDay){
-  const azimuth = 30; 
+function updateSky(timeofDay) {
+  const azimuth = 30;
   const elevation = timeofDay * 180; //0 - 180
-  const phi = THREE.MathUtils.degToRad( 90 - elevation );
-	const theta = THREE.MathUtils.degToRad( azimuth );
-  sun.setFromSphericalCoords( 1, phi, theta );
-  uniforms[ 'sunPosition' ].value.copy( sun );
+  const phi = THREE.MathUtils.degToRad(90 - elevation);
+  const theta = THREE.MathUtils.degToRad(azimuth);
+  sun.setFromSphericalCoords(1, phi, theta);
+  uniforms['sunPosition'].value.copy(sun);
   //renderer.toneMappingExposure = Math.max(0.1, 0.6);
 }
-function resetSky(){
-  const elevation = 0; 
-  const azimuth = 30; 
-  const phi = THREE.MathUtils.degToRad( 90 - elevation );
-	const theta = THREE.MathUtils.degToRad( azimuth );
-  sun.setFromSphericalCoords( 1, phi, theta );
-  uniforms[ 'sunPosition' ].value.copy( sun );
+function resetSky() {
+  const elevation = 0;
+  const azimuth = 30;
+  const phi = THREE.MathUtils.degToRad(90 - elevation);
+  const theta = THREE.MathUtils.degToRad(azimuth);
+  sun.setFromSphericalCoords(1, phi, theta);
+  uniforms['sunPosition'].value.copy(sun);
 }
 
 
 
 function createObjects() {
   // ENVIRONMENT
-  var environment = new EnvironmentGenerator(scene);
-  environment.loadGLTFEnvironmentModel('models/american_style_house/scene.gltf');
+  environment = new EnvironmentGenerator(scene, gcontrols.house);
   environment.loadGLTFEnvironmentModel('models/low_poly_wood_fence_on_grass/scene.gltf');
   environment.loadGLTFEnvironmentModel('models/stylized_bush/scene.gltf');
+  //environment.loadOBJEnvironmentModel('models/Campfire.obj');
 
   // LIGHTBULB
-  const bulbMass = 1.2;
+  const bulbMass = 12;
   const bulbRadius = 0.5;
-  const pos = new THREE.Vector3(0, 0, 0);
+  const pos = new THREE.Vector3(0, 5.5, 0);
   const quat = new THREE.Quaternion(0, 0, 0, 1);
-
-  // create lamp group
-  let fullLampGroup = new THREE.Group();
-  fullLampGroup.position.x = -6;
-  fullLampGroup.position.y = 4;
-  fullLampGroup.position.z = 0;
-  createLightBase(fullLampGroup, bulbRadius, quat);
 
   // light model
   lightbulb = makeBulbGroup();
@@ -177,23 +197,35 @@ function createObjects() {
   lightbulb.position.z = pos.z;
   lightbulb.scale.set(0.5, 0.5, 0.5);
   lightbulb.name = "lightbulb";
+  affectedObjects.push(lightbulb);
 
-  //assign the light's position as the lightPoint that the boids will be attracted to
-  lightPoint = fullLampGroup.position;
+  // BASE
+  base = createLightBase(quat);
+  scene.add(base);
+
+  // assign the light's position as the lightPoint that the boids will be attracted to
+  lightPoint = base.position;
+  lightPoint.setY(lightPoint.y - 2);
   boidManager.setLightPoint(lightPoint);
 
-  // bulb physics 
-  const bulbShape = new Ammo.btSphereShape(bulbRadius * 0.5);
-  bulbShape.setMargin(margin - 0.3);
+  // create bulb physics 
+  const bulbShape = new Ammo.btSphereShape(bulbRadius);
+  bulbShape.setMargin(margin);
   createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
   lightbulb.userData.physicsBody.setFriction(0.5);
+  scene.add(lightbulb);
 
-  let ropeSoftBody;
-  const ropeNumSegments = 10;
-  const ropeLength = 4;
-  ropeSoftBody = createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, fullLampGroup, bulbRadius);
+  // create cable/rope
+  createCable(lightbulb, bulbRadius, base, affectedObjects);
+
+
+  // Makes base draggable
+  interactionHandler = new InteractionHandler(camera, renderer, transformAux1, affectedObjects);
+  interactionHandlerDefined = true;
+  interactionHandler.addDragObject(base);
 }
 
+// returns lightbulb group
 function makeBulbGroup() {
   var yTranslation = 1.2;
 
@@ -315,14 +347,14 @@ function makeBulbGroup() {
   return group;
 }
 
-function createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group) {
-  // ROPE
-  // creates rope graphic object
-  const ropeMass = 3;
-  const ropePos = (lightbulb.position);
-  ropePos.x = 0;
-  ropePos.y = 5 - ropeLength;
-  ropePos.z = 0;
+function createCable(lightbulb, bulbRadius, base, affectedObjects) {
+  // The rope
+  // Rope graphic object
+  const ropeNumSegments = 10;
+  const ropeLength = 4;
+  const ropeMass = 12;
+  const ropePos = new THREE.Vector3(0.0, 6.0, 0.0);
+  //ropePos.y += bulbRadius;
 
   const segmentLength = ropeLength / ropeNumSegments;
   const ropeGeometry = new THREE.BufferGeometry();
@@ -344,10 +376,6 @@ function createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group
   rope = new THREE.LineSegments(ropeGeometry, ropeMaterial);
   rope.castShadow = true;
   rope.receiveShadow = true;
-  group.add(lightbulb);
-  group.add(rope);
-  group.add(base);
-  scene.add(group);
 
   // Rope physic object
   const softBodyHelpers = new Ammo.btSoftBodyHelpers();
@@ -361,37 +389,54 @@ function createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group
   Ammo.castObject(ropeSoftBody, Ammo.btCollisionObject).getCollisionShape().setMargin(margin * 3);
   physicsWorld.addSoftBody(ropeSoftBody, 1, -1);
   rope.userData.physicsBody = ropeSoftBody;
-
   // Disable deactivation
   ropeSoftBody.setActivationState(4);
+
+  // Hinge constraint to move the arm
+  const armLength = 2;
+  const pivotA = new Ammo.btVector3(0, ropePos.y * 0.5, 0);
+  const pivotB = new Ammo.btVector3(0, - 0.2, - armLength * 0.5);
+  const axis = new Ammo.btVector3(0, 1, 0);
+  //hinge = new Ammo.btHingeConstraint(pylon.userData.physicsBody, arm.userData.physicsBody, pivotA, pivotB, axis, axis, true);
+  //physicsWorld.addConstraint(hinge, true);
 
   // Glue the rope extremes to the ball and the arm
   const influence = 1;
   ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
   ropeSoftBody.appendAnchor(ropeNumSegments, base.userData.physicsBody, true, influence);
 
-  return ropeSoftBody;
+  //affectedObjects.push(rope);
+  isLightbulbThere = true;
+  scene.add(rope);
+
 }
 
-function createLightBase(group, bulbRadius, quat) {
+function createLightBase(quat) {
   // LIGHT BASE
   let baseMass = 0;
   let baseMaterial = new THREE.MeshPhongMaterial();
   baseMaterial.color = new THREE.Color(0xffffff);
-  base = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.2, 32), baseMaterial);
+  base = baseObject = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.2, 32), baseMaterial);
   base.position.x = 0;
-  base.position.y = 5;
+  base.position.y = 12;
   base.position.z = 0;
   base.castShadow = true;
   base.receiveShadow = true;
-  const baseShape = new Ammo.btBoxShape(0.2);
+  base.name = "base";
+
+  //Ammojs Section
+  let transform = new Ammo.btTransform();
+  transform.setIdentity();
+  transform.setOrigin(new Ammo.btVector3(base.position.x, base.position.y, base.position.z));
+  transform.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w));
+  let motionState = new Ammo.btDefaultMotionState(transform);
+
+  const baseShape = new Ammo.btBoxShape(new Ammo.btVector3(0.2, 0.2, 0.2));
   baseShape.setMargin(margin);
   createRigidBody(base, baseShape, baseMass, base.position, quat);
   base.userData.physicsBody.setFriction(0.5);
 
-  // Makes base draggable
-  const interactionHandler = new InteractionHandler(camera, renderer);
-  interactionHandler.addDragObject(group);
+  return base;
 }
 
 function initInput() {
@@ -411,14 +456,6 @@ function CreateTransfMatrices() {}
 
 function CreateScene() {
   CreateTransfMatrices();
-
-  //create a xyz axis
-  const axesHelper = new THREE.AxesHelper(5);
-  if (scene != undefined) {
-    scene.add(axesHelper);
-  } else {
-    init();
-  }
 }
 
 // create a rigidbody for physics application
@@ -437,19 +474,22 @@ function createRigidBody(threeObject, physicsShape, mass, pos, quat) {
 
   const rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, physicsShape, localInertia);
   const body = new Ammo.btRigidBody(rbInfo);
+  body.setFriction(4);
 
+  physicsWorld.addRigidBody(body);
   threeObject.userData.physicsBody = body;
-
-  scene.add(threeObject);
+  //scene.add(threeObject);
 
   if (mass > 0) {
     rigidBodies.push(threeObject);
 
     // Disable deactivation
-    body.setActivationState(4);
+    body.setActivationState(STATE.DISABLE_DEACTIVATION);
+
+  } else {
+    body.setActivationState(STATE.DISABLE_DEACTIVATION);
   }
 
-  physicsWorld.addRigidBody(body);
 }
 
 let lastSkyUpdate = 0;
@@ -466,20 +506,22 @@ function animate() {
   elapsedTime += delta;
   const totalDayTime = 5; //24seconds
   const timeOfDay = (elapsedTime % totalDayTime) / totalDayTime; // 0-1
-  if(elapsedTime >= totalDayTime){
+  if (elapsedTime >= totalDayTime) {
     resetSky();
     elapsedTime = 0;
     console.log("a new day");
   }
   if (now - lastSkyUpdate > updateInterval) {
     updateSky(timeOfDay);
-    lastSkyUpdate = now; 
+    lastSkyUpdate = now;
   }
+
   renderer.render(scene, camera);
 }
 
 function updatePhysics(deltaTime) {
   // Step world
+  //physicsWorld.stepSimulation(deltaTime,1, 10);
   physicsWorld.stepSimulation(deltaTime, 10);
 
   // Update rope
@@ -510,8 +552,11 @@ function updatePhysics(deltaTime) {
       const q = transformAux1.getRotation();
       objThree.position.set(p.x(), p.y(), p.z());
       objThree.quaternion.set(q.x(), q.y(), q.z(), q.w());
+
     }
+
   }
+
 }
 
 //////////////
@@ -524,16 +569,16 @@ function initComputeRenderer() {
   const dtVelocity = gpuCompute.createTexture();
   fillPositionTexture( dtPosition );
   fillVelocityTexture( dtVelocity );
-
+ 
   velocityVariable = gpuCompute.addVariable( 'textureVelocity', document.getElementById( 'fragmentShaderVelocity' ).textContent, dtVelocity );
   positionVariable = gpuCompute.addVariable( 'texturePosition', document.getElementById( 'fragmentShaderPosition' ).textContent, dtPosition );
-
+ 
   gpuCompute.setVariableDependencies( velocityVariable, [ positionVariable, velocityVariable ] );
   gpuCompute.setVariableDependencies( positionVariable, [ positionVariable, velocityVariable ] );
-
+ 
   positionUniforms = positionVariable.material.uniforms;
   velocityUniforms = velocityVariable.material.uniforms;
-
+ 
   positionUniforms[ 'time' ] = { value: 0.0 };
   positionUniforms[ 'delta' ] = { value: 0.0 };
   velocityUniforms[ 'time' ] = { value: 1.0 };
@@ -573,9 +618,12 @@ var deltaTime;
 
 var MyUpdateLoop = function () {
   deltaTime = clock.getDelta();
+  if (interactionHandlerDefined) {
+    interactionHandler.moveBall();
+  }
   CreateScene();
   for (let i = 0; i < scene.children.length; i++) {
-    if (lightbulb != null) {
+    if (isLightbulbThere) {
       updatePhysics(deltaTime);
     }
   }
@@ -628,3 +676,16 @@ var MyResize = function () {
 
 //link the resize of the window to the update of the camera
 window.addEventListener('resize', MyResize);
+
+// initializes GUI
+const gui = new dat.GUI();
+// Add a dropdown control for selecting house types
+gui.add(gcontrols, 'house', ['american', 'foresthouse']).name('House').listen()
+  .onChange(function (newValue) {
+    environment.houseMesh = environment.loadNewHouse(newValue);
+  });
+gui.add(lightSettings, 'brightness', 0, 5).name('Light Brightness').onChange(updateLightBrightness);
+
+gui.open();
+
+
