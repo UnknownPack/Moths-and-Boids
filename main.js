@@ -39,8 +39,13 @@ let interactionHandler;
 
 // GUI
 // default controls
+var houses = ['american', 'foresthouse'];
 var gcontrols = {
-  house: "american"
+  house: houses[getRandomInt(2)],
+}
+
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
 }
 
 // initialze physics environment
@@ -679,8 +684,9 @@ window.addEventListener('resize', MyResize);
 
 // initializes GUI
 const gui = new dat.GUI();
+
 // Add a dropdown control for selecting house types
-gui.add(gcontrols, 'house', ['american', 'foresthouse']).name('House').listen()
+gui.add(gcontrols, 'house', houses).name('House').listen()
   .onChange(function (newValue) {
     environment.houseMesh = environment.loadNewHouse(newValue);
   });
