@@ -25,6 +25,7 @@ export class InteractionHandler {
 
         controls.addEventListener('dragend', (event) => {
             this.currentXPosition = this.draggedObjects[0].position.x;
+            this.draggedObjects[0].position.y = 10;
         });
     }
 
