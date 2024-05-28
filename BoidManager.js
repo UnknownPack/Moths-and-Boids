@@ -214,15 +214,10 @@ export class BoidManager {
 
     removeMoths(count) {
     for (let i = 0; i < count; i++) {
-        if (this.boids.length != 0) {
-            // Remove boid from the array
-            const boidToRemove = this.boids.pop();
-
-            // Remove boid from the scene if it exists
+        if (this.boids.length != 0) { 
+            const boidToRemove = this.boids.pop(); 
             if (boidToRemove && boidToRemove.boidMesh) {
-                this.scene.remove(boidToRemove.boidMesh);
-
-                // Dispose geometry and material if they exist
+                this.scene.remove(boidToRemove.boidMesh); 
                 if (boidToRemove.boidMesh.geometry) {
                     boidToRemove.boidMesh.geometry.dispose();
                 } else {
@@ -233,9 +228,7 @@ export class BoidManager {
                     boidToRemove.boidMesh.material.dispose();
                 } else {
                     console.warn('Boid material is undefined.');
-                }
-
-                // Remove boid from the spatial grid
+                } 
                 const spatialKey = boidToRemove.giveSpatialKey();
                 if (this.grid.cells[spatialKey]) {
                     const index = this.grid.cells[spatialKey].indexOf(boidToRemove);

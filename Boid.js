@@ -197,7 +197,7 @@ export class Boid{
       }
     
     getRandomDirection() {
-        return Math.random() < 0.5 ? -1 : 1; // Returns -1 or 1 with equal probability
+        return Math.random() < 0.5 ? -1 : 1; 
     }
     
       
