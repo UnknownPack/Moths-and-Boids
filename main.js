@@ -118,11 +118,6 @@ function initGraphics() {
 
   document.body.appendChild(renderer.domElement);
 
-  // Add GUI controls
-  gui = new GUI();
-  gui.add(lightSettings, 'brightness', 0, 5).name('Light Brightness').onChange(updateLightSettings);
-  gui.add(lightSettings, 'soundPlaying').name('Sound Play/Pause').onChange(toggleSound);
-
   // Orbit Controls
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableRotate = false;
@@ -417,7 +412,7 @@ function ClearScene() {
       scene.remove(scene.children[i]);
 }
 
-function CreateTransfMatrices() {}
+function CreateTransfMatrices() { }
 
 function CreateScene() {
   CreateTransfMatrices();
@@ -649,7 +644,8 @@ gui.add(gcontrols, 'house', houses).name('House').listen()
   .onChange(function (newValue) {
     environment.houseMesh = environment.loadNewHouse(newValue);
   });
-gui.add(lightSettings, 'brightness', 0, 5).name('Light Brightness').onChange(updateLightBrightness);
+gui.add(lightSettings, 'brightness', 0, 5).name('Light Brightness').onChange(updateLightSettings);
+gui.add(lightSettings, 'soundPlaying').name('Sound Play/Pause').onChange(toggleSound);
 
 gui.open();
 
