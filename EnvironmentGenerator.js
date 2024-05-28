@@ -93,8 +93,10 @@ export class EnvironmentGenerator {
                     tra.makeTranslation(-center.x - 150, -center.y + 80, -center.z);
                     rot.makeRotationY(270 * Math.PI / 180);
                     combined.multiply(rot);
+            
                     this.loadGLTFEnvironmentModel('models/low_poly_wood_fence_on_grass/scene.gltf');
                     this.loadGLTFEnvironmentModel('models/stylized_bush/scene.gltf');
+
                 } else if(filePath == 'models/forest_house/scene.gltf'){
                     sca.makeScale(200/size.length(),200/size.length(),200/size.length());           
                     rot.makeRotationY(90*Math.PI/180);
@@ -102,6 +104,18 @@ export class EnvironmentGenerator {
                     tra.makeTranslation(0.050,-0.030,0.01);
                     combined.multiply(rot);
                     console.log("forest");
+                    gltf.scene.traverse(function (child) {
+                        if (child.isMesh && child.material instanceof THREE.MeshBasicMaterial) {
+                            child.material = new THREE.MeshPhongMaterial({
+                                color: child.material.color,
+                                map: child.material.map,  // Preserve the texture if any
+                                opacity: child.material.opacity,
+                                transparent: child.material.transparent
+                            });
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }
+                    });
                 } else if(filePath == 'models/low_poly_wood_fence_on_grass/scene.gltf'){
                     sca.makeScale(300/size.length(),300/size.length(),300/size.length());
                     tra.makeTranslation (-center.x,-center.y-10,-center.z-50);
