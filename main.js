@@ -277,11 +277,11 @@ function resetSky(){
 function createObjects() {
   // ENVIRONMENT
 
-  var environment = new EnvironmentGenerator(scene);
+  var environment = new EnvironmentGenerator(scene, gcontrols.house);
   //environment.loadGLTFEnvironmentModel('models/american_style_house/scene.gltf');
   //environment.loadGLTFEnvironmentModel('models/low_poly_wood_fence_on_grass/scene.gltf');
   //environment.loadGLTFEnvironmentModel('models/stylized_bush/scene.gltf');
-  environment.loadGLTFEnvironmentModel('models/forest_house/scene.gltf');
+  //environment.loadGLTFEnvironmentModel('models/forest_house/scene.gltf');
 
   // LIGHTBULB
   const bulbMass = 12;
@@ -698,11 +698,11 @@ window.addEventListener('resize', MyResize);
 const gui = new dat.GUI();
 
 // Add a dropdown control for selecting house types
-/*
+
 gui.add(gcontrols, 'house', houses).name('House').listen()
   .onChange(function (newValue) {
     environment.houseMesh = environment.loadNewHouse(newValue);
-  });*/
+  });
 
 gui.add(lightSettings, 'brightness', 0, 5).name('Light Brightness').onChange(updateLightSettings);
 gui.add(lightSettings, 'totalDayTime', 5, 60, 1).name('totalDayTime').onChange();
