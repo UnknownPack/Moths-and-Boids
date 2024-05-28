@@ -22,20 +22,20 @@ export class Boid{
         this.position.add(this.velocity);
     
         if (this.boidMesh) {
-            this.boidMesh.position.copy(this.position);
-            
-            // Update orientation to face the direction of velocity
+            this.boidMesh.position.copy(this.position); 
             if (!this.velocity.equals(new THREE.Vector3(0, 0, 0))) {
                 const currentDirection = new THREE.Vector3(0, 1, 0);
                 const targetDirection = this.velocity.clone().normalize();
                 const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
-                this.boidMesh.quaternion.slerp(quaternionTarget, 0.1); // Adjust 0.1 to a suitable factor for your simulation speed
+                this.boidMesh.quaternion.slerp(quaternionTarget, 0.1);  
             }
         }
     
         if (this.boundingSphere) {
             this.boundingSphere.center.copy(this.position);
         }
+
+        //this.orbitAroundLight();
     }
     
 
@@ -46,25 +46,20 @@ export class Boid{
         }
     }
     
-    initBoidMesh(geometry, material) {
-        // I'd reckon you can change the mesh of the moth here
-        // I will use spheres to represent the moth
-    
+    initBoidMesh(geometry, material) { 
         this.boidMesh = new THREE.Mesh(geometry, material);
-        this.boidMesh.scale.set(0.07, 0.07, 0.07);
+        this.boidMesh.scale.set(0.1,0.1,0.1);
         this.boidMesh.position.copy(this.position);
     } 
     
     applyForce(force, deltaTime) {
-        let inertiaFactor = 0.001;
-        let dampingFactor = 0.95;  // Reduce velocity by 5% each frame to add damping
-        let smoothedForce = force.clone().multiplyScalar(10000000);
+        let inertiaFactor = 0.01;
+        let dampingFactor = 0.90;  
+        let smoothedForce = force.clone().multiplyScalar(10);
         let deltaV = smoothedForce.multiplyScalar(deltaTime * inertiaFactor);
         this.velocity.add(deltaV);
-        this.velocity.multiplyScalar(dampingFactor); // Apply damping
-        this.velocity.clampLength(0, this.maxSpeed);
-    
-        // Quaternion rotation to face velocity direction
+        this.velocity.multiplyScalar(dampingFactor);  
+        this.velocity.clampLength(0, this.maxSpeed); 
         if (!this.velocity.equals(new THREE.Vector3(0, 0, 0))) {
             const currentDirection = new THREE.Vector3(0, 1, 0);
             const targetDirection = this.velocity.clone().normalize();
@@ -74,9 +69,7 @@ export class Boid{
     }
     
     
-    
-    randomRotation() {
-        // Generate a new random direction vector
+    randomRotation() { 
         let disperseValue = 15;
         let directionVector = new THREE.Vector3(
             this.getRandomInt(-disperseValue, disperseValue),
@@ -85,36 +78,49 @@ export class Boid{
     
         return directionVector;
     }
+
+    
     
     attractionToLight() {
-        let lightAttractionForce;  
+        let lightAttractionForce = new THREE.Vector3(0, 0, 0);
     
-        if (!this.lightPoint) return new THREE.Vector3(0, 0, 0);  
+        if (!this.lightPoint) return lightAttractionForce;
     
         if (this.lightAttraction > 0) {
             lightAttractionForce = new THREE.Vector3().subVectors(this.lightPoint, this.position);
-            lightAttractionForce.multiplyScalar(this.lightAttraction);
-            
-            // Quaternion rotation towards light
+            lightAttractionForce.multiplyScalar(this.lightAttraction * 0.1);  
+
             if (!lightAttractionForce.equals(new THREE.Vector3(0, 0, 0))) {
-                const currentDirection = new THREE.Vector3(0, 0, -1);  // Assuming the forward direction
+                const currentDirection = new THREE.Vector3(0, 0, -1);  
                 const targetDirection = lightAttractionForce.clone().normalize();
                 const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
-                this.boidMesh.quaternion.slerp(quaternionTarget, 0.05); // Adjust the factor as needed
+                this.boidMesh.quaternion.slerp(quaternionTarget, 0.0025); 
             }
-        } 
-        
-        else if (this.lightAttraction <= 0) {
+        } else {
             lightAttractionForce = new THREE.Vector3(
                 this.getRandomFloat(0.01, 1), 
                 this.getRandomFloat(0.01, 1), 
                 this.getRandomFloat(0.01, 1)
-            ).normalize().multiplyScalar(this.maxSpeed); // Example scalar to control the magnitude
-        }
+            ).normalize().multiplyScalar(this.maxSpeed);  
+        } 
+        var directionMultiplier = this.getRandomDirection();
+        const leftForce = this.leftForce_forOrbit(directionMultiplier);  
+        const combinedForce = lightAttractionForce.add(leftForce);
     
-        return lightAttractionForce;
+        return combinedForce;
     }
     
+    
+    leftForce_forOrbit() {
+        if (!this.lightPoint) return new THREE.Vector3(0, 0, 0);
+    
+        const distanceToLight = this.position.distanceTo(this.lightPoint); 
+        const leftForceMagnitude = Math.max(this.lightAttraction / (distanceToLight + 1), 0.1);  
+        const leftDirection = new THREE.Vector3(-1, 0, 0).applyQuaternion(this.boidMesh.quaternion).normalize();        
+        const leftForce = leftDirection.multiplyScalar(leftForceMagnitude * 11);
+    
+        return leftForce;
+    }
     
     
     
@@ -131,10 +137,11 @@ export class Boid{
                 }
             }
         }
-        
+        /*
         if (avoidanceForce.length() > maxAvoidanceForce) {
             avoidanceForce.normalize().multiplyScalar(maxAvoidanceForce);
         }
+        */
     
         // Quaternion rotation to lean back from obstacles
         if (!avoidanceForce.equals(new THREE.Vector3(0, 0, 0))) {
@@ -147,6 +154,23 @@ export class Boid{
         return avoidanceForce;
     }
 
+    orbitAroundLight() {
+        if (!this.lightPoint) return;   
+        const toLight = new THREE.Vector3().subVectors(this.lightPoint, this.position);
+        let orbitRadius = toLight.length(); 
+        const toLightNormalized = toLight.normalize(); 
+        const perpendicular = new THREE.Vector3(-toLightNormalized.y, toLightNormalized.x, 0); 
+        const radialForceMagnitude = (toLight.length() - orbitRadius) * 0.1;  
+        const radialForce = toLightNormalized.multiplyScalar(radialForceMagnitude); 
+        this.applyForce(radialForce); 
+        const tangentialSpeed = 0.05;  
+        const tangentialForce = perpendicular.multiplyScalar(tangentialSpeed);
+        this.applyForce(tangentialForce);
+    }
+    
+
+
+
     setLightPoint(point){
         this.lightPoint = point;
     }
@@ -154,6 +178,10 @@ export class Boid{
 
     updateSpatialKey(spatialKey){
         this.spatialKey = spatialKey;
+    }
+
+    giveLightPoint(){
+        return this.lightPoint;
     }
 
     giveSpatialKey(){
@@ -167,6 +195,11 @@ export class Boid{
     getRandomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
       }
+    
+    getRandomDirection() {
+        return Math.random() < 0.5 ? -1 : 1; // Returns -1 or 1 with equal probability
+    }
+    
       
       getRandomFloat(min, max) {
         return Math.random() * (max - min) + min;
@@ -178,5 +211,13 @@ export class Boid{
         return 2 * t * t;
     } else {
         return -1 + (4 - 2 * t) * t;
+    }
+
+    function* test() {
+        console.log('Hello!');
+        var x = yield;
+        console.log('First I got: ' + x);
+        var y = yield;
+        console.log('Then I got: ' + y);
     }
 }
