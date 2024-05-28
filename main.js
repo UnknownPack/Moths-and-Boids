@@ -47,7 +47,9 @@ let lightSettings = {
 };
 
 // Audio
-let listener, sound, audioLoader;
+let listener, sound, audioLoader, backgroundMusic;
+let backgroundMusicVolume = 0.25; // Separate volume control for background music
+
 
 let baseObject = null;
 const STATE = { DISABLE_DEACTIVATION: 4 }
@@ -167,6 +169,12 @@ function updateSoundVolume() {
   }
 }
 
+function updateBackgroundMusicVolume() {
+  if (backgroundMusic) {
+    backgroundMusic.setVolume(backgroundMusicVolume);
+  }
+}
+
 function toggleSound() {
   if (sound) {
     if (lightSettings.soundPlaying) {
@@ -175,7 +183,15 @@ function toggleSound() {
       sound.pause();
     }
   }
+  if (backgroundMusic) {
+    if (lightSettings.soundPlaying) {
+      backgroundMusic.play();
+    } else {
+      backgroundMusic.pause();
+    }
+  }
 }
+
 
 function initSound() {
   listener = new AudioListener();
@@ -189,6 +205,14 @@ function initSound() {
     sound.setLoop(true);
     sound.setVolume(lightSettings.brightness / 5);
     sound.play();
+  });
+  // Background music
+  backgroundMusic = new Audio(listener);
+  audioLoader.load('build/sounds/backgroundmusic.mp3', function (buffer) {
+    backgroundMusic.setBuffer(buffer);
+    backgroundMusic.setLoop(true);
+    backgroundMusic.setVolume(backgroundMusicVolume);
+    backgroundMusic.play();
   });
 }
 
@@ -704,9 +728,13 @@ gui.add(gcontrols, 'house', houses).name('House').listen()
     environment.houseMesh = environment.loadNewHouse(newValue);
   });
 
-gui.add(lightSettings, 'brightness', 0, 5).name('Light Brightness').onChange(updateLightSettings);
+gui.add(lightSettings, 'brightness', 0, 10).name('Light Brightness').onChange(updateLightSettings);
 gui.add(lightSettings, 'totalDayTime', 5, 60, 1).name('totalDayTime').onChange();
 gui.add(lightSettings, 'soundPlaying').name('Sound Play/Pause').onChange(toggleSound);
+gui.add({volume: backgroundMusicVolume}, 'volume', 0, 1).name('Music').onChange(function (value) {
+  backgroundMusicVolume = value;
+  updateBackgroundMusicVolume();
+});
 
 gui.open();
 
