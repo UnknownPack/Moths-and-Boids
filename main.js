@@ -664,8 +664,9 @@ function handleKeyDown(event) {
     CreateScene();
   } 
   if (event.keyCode === 32) {
-    boidManager.spawnFlyer_mothEater();
-    console.log("spanwed moth eaters");
+    //boidManager.spawnFlyer_mothEater();
+    //console.log("spanwed moth eaters");
+    // moth eaters dosen't work :(
   }
 }
 

@@ -246,11 +246,7 @@ export class BoidManager {
             break;
         }
     }
-}
-
-    
-    
-    
+} 
 
     setLightPoint(lightPoint) {   
         this.lightPoint = lightPoint;
