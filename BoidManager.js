@@ -110,12 +110,15 @@ export class BoidManager {
         }
     }
 
+
     setLightPoint(lightPoint) {
         this.lightPoint = lightPoint;
         for (const boid of this.boids) {
             boid.setLightPoint(lightPoint);
         }
     }
+
+    
 
     addObjectToGrid(object) {
         this.otherObjects.add(object);
@@ -128,6 +131,8 @@ export class BoidManager {
     getRandomFloat(min, max) {
         return Math.random() * (max - min) + min;
     }
+
+
 }
 
  

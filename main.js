@@ -6,6 +6,7 @@ import { BoidManager } from './BoidManager.js';
 import { GLTFLoader } from './build/loaders/GLTFLoader.js';
 import { GPUComputationRenderer } from './build/misc/GPUComputationRenderer.js';
 import { Sky } from './build/environment/Sky.js';
+import { GUI } from './build/controls/dat.gui.module.js';
 
 // GRAPHICS CONST
 let camera, controls, renderer;
@@ -28,29 +29,26 @@ let lightbulb;
 let lightPoint = new THREE.Vector3(0, 5, 3);
 let transformAux1;
 
-//let armMovement = 0;
+// GUI Controls
+let gui;
+let lightSettings = {
+  brightness: 1.0
+};
 
 // Inits physics environment
 Ammo().then(function (AmmoLib) {
-
   Ammo = AmmoLib;
-
   init();
   animate();
   //requestAnimationFrame(MyUpdateLoop);
-
 });
 
 function init() {
-
   initGraphics();
   initPhysics();
   createObjects();
   initInput();
   initSky();
-
-  // Initialize GUI controls
-  const controlsUI = new guiControls(scene, lightbulb, boidManager);
   // DEBUGGING
   console.log(scene.children);
 }
@@ -80,21 +78,30 @@ function initGraphics() {
 
   document.body.appendChild(renderer.domElement);
 
-  //////////////
-  // ORBIT CONTROLS //
-  //////////////
+  // Add GUI controls
+  gui = new GUI();
+  gui.add(lightSettings, 'brightness', 0, 5).name('Light Brightness').onChange(updateLightBrightness);
 
-  // move mouse and: left   click to rotate,
-  //                 middle click to zoom,
-  //                 right  click to pan
-  // add the new control and link to the current camera to transform its position
+  // Orbit Controls
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableRotate = false;
   controls.enablePan = false;
 }
 
-function initPhysics() {
+function updateLightBrightness() {
+  if (lightbulb) {
+    lightbulb.children.forEach(child => {
+      if (child.isPointLight) {
+        child.intensity = lightSettings.brightness;
+      }
+      if (child.isMesh) {
+        child.material.emissiveIntensity = lightSettings.brightness;
+      }
+    });
+  }
+}
 
+function initPhysics() {
   // Physics configuration
   collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
   dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
@@ -106,7 +113,6 @@ function initPhysics() {
   physicsWorld.getWorldInfo().set_m_gravity(new Ammo.btVector3(0, gravityConstant, 0));
 
   transformAux1 = new Ammo.btTransform();
-
 }
 
 let sky, sun, elevation, azimuth, phi, theta, uniforms;
@@ -126,6 +132,7 @@ function initSky() {
 
   updateSky(0);
 }
+
 function updateSky(time) {
   const elevation = 2 + 60 * Math.sin(Math.PI * time); // 0-90
   const azimuth = 2 * 180 * time; //-180 - 180
@@ -134,8 +141,8 @@ function updateSky(time) {
   sun.setFromSphericalCoords(1, phi, theta);
   uniforms['sunPosition'].value.copy(sun);
   renderer.toneMappingExposure += time / 10;
-
 }
+
 function resetSky() {
   const elevation = 0; // 0-90
   const azimuth = -180; //-180 - 180
@@ -146,31 +153,18 @@ function resetSky() {
   renderer.toneMappingExposure = 0.2; // 0-1
 }
 
-/*
-function initNightSky(){
-  float theta = acos( direction.y ); // elevation --> y-axis, [-pi/2, pi/2]
-  float phi = atan( direction.z, direction.x ); // azimuth --> x-axis [-pi/2, pi/2]
-  vec2 uv = vec2( phi, theta ) / vec2( 2.0 * pi, pi ) + vec2( 0.5, 0.0 );
-  vec3 L0 = vec3( 0.1 ) * Fex; explaine the code for nightsky
-}*/
-
-
-
 function createObjects() {
-
   // ENVIRONMENT
   var environment = new EnvironmentGenerator(scene);
   environment.loadGLTFEnvironmentModel('models/american_style_house/scene.gltf');
   environment.loadGLTFEnvironmentModel('models/low_poly_wood_fence_on_grass/scene.gltf');
   environment.loadGLTFEnvironmentModel('models/stylized_bush/scene.gltf');
-  //environment.loadGLTFEnvironmentModel('models/forest_house/scene.gltf');
-  //environment.loadOBJEnvironmentModel('models/Campfire.obj');
 
   // LIGHTBULB
   const bulbMass = 10;
   const bulbRadius = 0.5;
   const pos = new THREE.Vector3(0, 0, 0);
-  const quat = new THREE.Quaternion( 0, 0, 0, 1 );
+  const quat = new THREE.Quaternion(0, 0, 0, 1);
 
   // create lamp group
   let fullLampGroup = new THREE.Group();
@@ -178,12 +172,9 @@ function createObjects() {
   fullLampGroup.position.y = 4;
   fullLampGroup.position.z = 0;
   createLightBase(fullLampGroup, bulbRadius, quat);
+
   // light model
   lightbulb = makeBulbGroup();
-    // creates a sphere as a temporary reference for light bulb interaction 
-  // const lightbulb_geometry = new THREE.SphereGeometry(bulbRadius);
-  // const lightbulb_material = new THREE.MeshPhongMaterial({ color: 0xfddc5c, transparent: true });
-  // const lightbulb = new THREE.Mesh(lightbulb_geometry, lightbulb_material);
   lightbulb.position.y = pos.y;
   lightbulb.position.z = pos.z;
   lightbulb.scale.set(0.5, 0.5, 0.5);
@@ -194,11 +185,10 @@ function createObjects() {
   boidManager.setLightPoint(lightPoint);
 
   // bulb physics 
-  const bulbShape = new Ammo.btSphereShape(bulbRadius*0.5);
+  const bulbShape = new Ammo.btSphereShape(bulbRadius * 0.5);
   bulbShape.setMargin(margin - 0.3);
   createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
   lightbulb.userData.physicsBody.setFriction(0.5);
-
 
   let ropeSoftBody;
   const ropeNumSegments = 10;
@@ -210,7 +200,7 @@ function makeBulbGroup() {
   var yTranslation = 1.2;
 
   var group = new THREE.Group();
-  const intensity = 3.0;
+  const intensity = lightSettings.brightness;
   //main bulb
   var bulbGeometry = new THREE.SphereGeometry(1, 32, 32);
   var bulbLight = new THREE.PointLight(0xffee88, 1, 100, 2);
@@ -222,7 +212,7 @@ function makeBulbGroup() {
   });
 
   bulbLight.add(new THREE.Mesh(bulbGeometry, bulbMat));
-  bulbLight.position.set(0, -1+yTranslation, 0);
+  bulbLight.position.set(0, -1 + yTranslation, 0);
   bulbLight.castShadow = true;
 
   var d = 200;
@@ -245,7 +235,7 @@ function makeBulbGroup() {
   });
 
   var bStem = new THREE.Mesh(bulbStem, stemMat);
-  bStem.position.set(0, -0.1+yTranslation, 0);
+  bStem.position.set(0, -0.1 + yTranslation, 0);
   bStem.castShadow = true;
   bStem.receiveShadow = true;
 
@@ -257,7 +247,7 @@ function makeBulbGroup() {
   });
 
   var plug = new THREE.Mesh(bulbPlug, plugMat);
-  plug.position.set(0, 0.2+yTranslation, 0);
+  plug.position.set(0, 0.2 + yTranslation, 0);
   plug.receiveShadow = true;
   plug.castShadow = true;
 
@@ -268,7 +258,7 @@ function makeBulbGroup() {
     color: 0xe8d905
   });
   var plugTop = new THREE.Mesh(topGeo, topMat);
-  plugTop.position.set(0, 0.75+yTranslation, 0);
+  plugTop.position.set(0, 0.75 + yTranslation, 0);
   plugTop.receiveShadow = true;
   plugTop.castShadow = true;
 
@@ -283,7 +273,7 @@ function makeBulbGroup() {
   for (var i = 0; i < 3; i++) {
     var ring = new THREE.Mesh(ringGeo, ringMat);
     ring.rotation.x = -Math.PI / 2;
-    ring.position.set(0, ringY+yTranslation, 0);
+    ring.position.set(0, ringY + yTranslation, 0);
     group.add(ring);
 
     ringY += 0.15;
@@ -293,14 +283,14 @@ function makeBulbGroup() {
   var topRingGeo = new THREE.TorusGeometry(0.49, 0.05, 16, 100);
 
   var topRing = new THREE.Mesh(topRingGeo, ringMat);
-  topRing.position.set(0, 0.75+yTranslation, 0);
+  topRing.position.set(0, 0.75 + yTranslation, 0);
   topRing.rotation.x = -Math.PI / 2;
 
   //bottom ring
   var botRingGeo = new THREE.TorusGeometry(0.5, 0.05, 16, 100);
 
   var botRing = new THREE.Mesh(botRingGeo, ringMat);
-  botRing.position.set(0, 0.15+yTranslation, 0);
+  botRing.position.set(0, 0.15 + yTranslation, 0);
   botRing.rotation.x = -Math.PI / 2;
 
   //add to group
@@ -335,15 +325,11 @@ function createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group
   const ropeIndices = [];
 
   for (let i = 0; i < ropeNumSegments + 1; i++) {
-
     ropePositions.push(ropePos.x, ropePos.y + i * segmentLength, ropePos.z);
-
   }
 
   for (let i = 0; i < ropeNumSegments; i++) {
-
     ropeIndices.push(i, i + 1);
-
   }
 
   ropeGeometry.setIndex(new THREE.BufferAttribute(new Uint16Array(ropeIndices), 1));
@@ -367,23 +353,16 @@ function createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group
   sbConfig.set_piterations(10);
   ropeSoftBody.setTotalMass(ropeMass, false);
   Ammo.castObject(ropeSoftBody, Ammo.btCollisionObject).getCollisionShape().setMargin(margin * 3);
-  physicsWorld.addSoftBody(ropeSoftBody, 1, - 1);
+  physicsWorld.addSoftBody(ropeSoftBody, 1, -1);
   rope.userData.physicsBody = ropeSoftBody;
 
   // Disable deactivation
   ropeSoftBody.setActivationState(4);
 
-  // Hinge constraint to move the arm
-  // const pivotA = new Ammo.btVector3(0, ropePos.y * 0.5, 0);
-  // const pivotB = new Ammo.btVector3(0, - 0.2, - armLength * 0.5);
-  // const axis = new Ammo.btVector3(0, 1, 0);
-  // hinge = new Ammo.btHingeConstraint(pylon.userData.physicsBody, arm.userData.physicsBody, pivotA, pivotB, axis, axis, true);
-  // physicsWorld.addConstraint(hinge, true);
-
-    // Glue the rope extremes to the ball and the arm
-    const influence = 1;
-    ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
-    ropeSoftBody.appendAnchor(ropeNumSegments, base.userData.physicsBody, true, influence);
+  // Glue the rope extremes to the ball and the arm
+  const influence = 1;
+  ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
+  ropeSoftBody.appendAnchor(ropeNumSegments, base.userData.physicsBody, true, influence);
 
   return ropeSoftBody;
 }
@@ -421,8 +400,7 @@ function ClearScene() {
       scene.remove(scene.children[i]);
 }
 
-function CreateTransfMatrices() {
-}
+function CreateTransfMatrices() {}
 
 function CreateScene() {
   CreateTransfMatrices();
@@ -438,7 +416,6 @@ function CreateScene() {
 
 // create a rigidbody for phaysics application
 function createRigidBody(threeObject, physicsShape, mass, pos, quat) {
-
   threeObject.position.copy(pos);
   threeObject.quaternion.copy(quat);
 
@@ -459,21 +436,19 @@ function createRigidBody(threeObject, physicsShape, mass, pos, quat) {
   scene.add(threeObject);
 
   if (mass > 0) {
-
     rigidBodies.push(threeObject);
 
     // Disable deactivation
     body.setActivationState(4);
-
   }
 
   physicsWorld.addRigidBody(body);
-
 }
 
 let lastSkyUpdate = 0;
 const updateInterval = 1000;
 let elapsedTime = 0;
+
 function animate() {
   requestAnimationFrame(animate);
   if (scene != undefined) {
@@ -498,7 +473,6 @@ function animate() {
 }
 
 function updatePhysics(deltaTime) {
-
   // Step world
   physicsWorld.stepSimulation(deltaTime, 10);
 
@@ -510,37 +484,29 @@ function updatePhysics(deltaTime) {
   let indexFloat = 0;
 
   for (let i = 0; i < numVerts; i++) {
-
     const node = nodes.at(i);
     const nodePos = node.get_m_x();
     ropePositions[indexFloat++] = nodePos.x();
     ropePositions[indexFloat++] = nodePos.y();
     ropePositions[indexFloat++] = nodePos.z();
-
   }
 
   rope.geometry.attributes.position.needsUpdate = true;
 
   // Update rigid bodies
   for (let i = 0, il = rigidBodies.length; i < il; i++) {
-
     const objThree = rigidBodies[i];
     const objPhys = objThree.userData.physicsBody;
     const ms = objPhys.getMotionState();
     if (ms) {
-
       ms.getWorldTransform(transformAux1);
       const p = transformAux1.getOrigin();
       const q = transformAux1.getRotation();
       objThree.position.set(p.x(), p.y(), p.z());
       objThree.quaternion.set(q.x(), q.y(), q.z(), q.w());
-
     }
-
   }
-
 }
-
 
 //////////////
 //GPUCompute//
@@ -580,10 +546,8 @@ function initComputeRenderer() {
 //  Boids   //
 //////////////
 
-
-
 // Create boid manager
-//these paramters can be changed
+//these parameters can be changed
 
 const numberOfBoids = 150;
 const obstacles = [];
@@ -595,6 +559,7 @@ const lightAttraction = 1000;
 const spawnRadius = 20;
 const boidManager = new BoidManager(numberOfBoids, obstacles, velocity, maxSpeed, maxForce, searchRadius, lightAttraction, spawnRadius, scene);
 boidManager.setLightPoint(lightPoint);
+
 
 //final update loop
 let clock = new THREE.Clock();
@@ -612,8 +577,9 @@ var MyUpdateLoop = function () {
   //render()
   renderer.render(scene, camera);
 
-
   boidManager.updateBoids(deltaTime);
+
+  // Inside your init function or wherever appropriate
 
   // - Orbit Controls - 
   //controls.update();
@@ -644,7 +610,7 @@ function handleKeyDown(event) {
 //add keyboard listener
 window.addEventListener('keydown', handleKeyDown, false);
 
-//this fucntion is called when the window is resized
+//this function is called when the window is resized
 var MyResize = function () {
   var width = window.innerWidth;
   var height = window.innerHeight;
