@@ -4,43 +4,79 @@ import { EnvironmentGenerator } from './EnvironmentGenerator.js';
 import { InteractionHandler } from './InteractionHandler.js';
 import { BoidManager } from './BoidManager.js';
 import { GLTFLoader } from './build/loaders/GLTFLoader.js';
-import { GPUComputationRenderer } from './build/misc/GPUComputationRenderer.js';
 import { Sky } from './build/environment/Sky.js';
+
+//import { GUI } from './build/lil-gui.module.min.js';
+
 import { GUI } from './build/controls/dat.gui.module.js';
+import { AudioLoader, AudioListener, Audio } from 'three';
 
 // GRAPHICS CONST
 let camera, controls, renderer;
 let scene = new THREE.Scene();
 // PHYSICS CONST
-const gravityConstant = - 9.8;
+const gravityConstant = -9.8;
 let collisionConfiguration;
 let dispatcher;
 let broadphase;
 let solver;
 let softBodySolver;
 let physicsWorld;
+let tmpTrans;
 
 const margin = 0.05;
 const rigidBodies = [];
+var environment;
 let hinge;
 let base;
 let rope;
 let lightbulb;
-let lightPoint = new THREE.Vector3(0, 5, 3);
+let isLightbulbThere = false, interactionHandlerDefined = false;
+let lightPoint //= new THREE.Vector3(0, 5, 3);
+let ropeSoftBody;
 let transformAux1;
 
+
+//let armMovement = 0;
 // GUI Controls
-let gui;
+
 let lightSettings = {
-  brightness: 1.0
+  brightness: 1.0,
+  soundPlaying: true,
+  totalDayTime:20
 };
 
-// Inits physics environment
+// Audio
+let listener, sound, audioLoader, backgroundMusic;
+let backgroundMusicVolume = 0.25; // Separate volume control for background music
+
+
+let baseObject = null;
+const STATE = { DISABLE_DEACTIVATION: 4 }
+//let armMovement = 0;
+let interactionHandler;
+
+// GUI
+// default controls
+var houses = ['american', 'foresthouse'];
+var gcontrols = {
+  house: houses[getRandomInt(2)],
+}
+
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}
+
+// initialze physics environment
+// Ensure Ammo.js is fully loaded and initialized
 Ammo().then(function (AmmoLib) {
   Ammo = AmmoLib;
-  init();
-  animate();
-  //requestAnimationFrame(MyUpdateLoop);
+
+  init()
+  animate()
+
+}).catch(error => {
+  console.error("Error initializing Ammo.js:", error);
 });
 
 function init() {
@@ -51,10 +87,23 @@ function init() {
   initSky();
   // DEBUGGING
   console.log(scene.children);
+
+  initSound();
 }
+
 
 function initGraphics() {
   var ratio = window.innerWidth / window.innerHeight;
+
+  //create a xyz axis
+  const axesHelper = new THREE.AxesHelper(5);
+  axesHelper.visible = false;
+  if (scene != undefined) {
+    scene.add(axesHelper);
+  } else {
+    init();
+  }
+
   //create the perspective camera
   camera = new THREE.PerspectiveCamera(45, ratio, 0.1, 1000);
   camera.position.set(0, 0, 100);
@@ -78,52 +127,108 @@ function initGraphics() {
 
   document.body.appendChild(renderer.domElement);
 
-  // Add GUI controls
-  gui = new GUI();
-  gui.add(lightSettings, 'brightness', 0, 5).name('Light Brightness').onChange(updateLightBrightness);
-
   // Orbit Controls
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableRotate = false;
   controls.enablePan = false;
 }
 
-function updateLightBrightness() {
+function updateLightSettings() {
   if (lightbulb) {
     lightbulb.children.forEach(child => {
       if (child.isPointLight) {
-        child.intensity = lightSettings.brightness;
+        child.intensity =lightSettings .brightness;
       }
       if (child.isMesh) {
         child.material.emissiveIntensity = lightSettings.brightness;
       }
     });
   }
+  updateSoundVolume();
+}
+
+function updateSoundVolume() {
+  if (sound) {
+    sound.setVolume(lightSettings.brightness / 5);
+  }
+}
+
+function updateBackgroundMusicVolume() {
+  if (backgroundMusic) {
+    backgroundMusic.setVolume(backgroundMusicVolume);
+  }
+}
+
+function toggleSound() {
+  if (sound) {
+    if (lightSettings.soundPlaying) {
+      sound.play();
+    } else {
+      sound.pause();
+    }
+  }
+  if (backgroundMusic) {
+    if (lightSettings.soundPlaying) {
+      backgroundMusic.play();
+    } else {
+      backgroundMusic.pause();
+    }
+  }
+}
+
+
+function initSound() {
+  listener = new AudioListener();
+  camera.add(listener);
+
+  sound = new Audio(listener);
+
+  audioLoader = new AudioLoader();
+  audioLoader.load('build/sounds/wings.mp3', function (buffer) {
+    sound.setBuffer(buffer);
+    sound.setLoop(true);
+    sound.setVolume(lightSettings.brightness / 5);
+    sound.play();
+  });
+  // Background music
+  backgroundMusic = new Audio(listener);
+  audioLoader.load('build/sounds/backgroundmusic.mp3', function (buffer) {
+    backgroundMusic.setBuffer(buffer);
+    backgroundMusic.setLoop(true);
+    backgroundMusic.setVolume(backgroundMusicVolume);
+    backgroundMusic.play();
+  });
 }
 
 function initPhysics() {
   // Physics configuration
-  collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
-  dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
-  broadphase = new Ammo.btDbvtBroadphase();
-  solver = new Ammo.btSequentialImpulseConstraintSolver();
-  softBodySolver = new Ammo.btDefaultSoftBodySolver();
-  physicsWorld = new Ammo.btSoftRigidDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration, softBodySolver);
-  physicsWorld.setGravity(new Ammo.btVector3(0, gravityConstant, 0));
-  physicsWorld.getWorldInfo().set_m_gravity(new Ammo.btVector3(0, gravityConstant, 0));
-
-  transformAux1 = new Ammo.btTransform();
+  try {
+    collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
+    dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
+    broadphase = new Ammo.btDbvtBroadphase();
+    solver = new Ammo.btSequentialImpulseConstraintSolver();
+    softBodySolver = new Ammo.btDefaultSoftBodySolver();
+    physicsWorld = new Ammo.btSoftRigidDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration, softBodySolver);
+    physicsWorld.setGravity(new Ammo.btVector3(0, gravityConstant, 0));
+    physicsWorld.getWorldInfo().set_m_gravity(new Ammo.btVector3(0, gravityConstant, 0));
+    transformAux1 = new Ammo.btTransform();
+  } catch (e) {
+    console.error("Error during physics initialization:", e);
+  }
 }
 
-let sky, sun, uniforms;
+
+let sky, sun, uniforms, moon;
 function initSky(){
+
   sky = new Sky();
-	sky.scale.setScalar( 450); 
-	scene.add( sky );
+  sky.scale.setScalar(450);
+  scene.add(sky);
   sun = new THREE.Vector3();
+  moon = new THREE.Vector3();
 
   uniforms = sky.material.uniforms;
-  renderer.toneMappingExposure = 0.4; // 0-1
+  renderer.toneMappingExposure = 0.3; // 0-1
   uniforms[ 'turbidity' ].value = 5; // 0-20
   uniforms[ 'rayleigh' ].value = 3; //0-4
 	uniforms[ 'mieCoefficient' ].value = 0.033; // 0-0.1
@@ -133,43 +238,66 @@ function initSky(){
 
 function updateSky(timeofDay){
   const azimuth = 30; 
-  const elevation = timeofDay * 180; //0 - 180
+  const elevation = timeofDay* 2 * 180; //0 - 180
   const phi = THREE.MathUtils.degToRad( 90 - elevation );
 	const theta = THREE.MathUtils.degToRad( azimuth );
   sun.setFromSphericalCoords( 1, phi, theta );
   uniforms[ 'sunPosition' ].value.copy( sun );
-  //renderer.toneMappingExposure = Math.max(0.1, 0.6);
+
+  const moonElevation = (timeofDay + 0.5) % 1 * 2 * 180; 
+  const moonPhi = THREE.MathUtils.degToRad(90 - moonElevation);
+  const moonTheta = THREE.MathUtils.degToRad(azimuth);
+  moon.setFromSphericalCoords(1, moonPhi, moonTheta);
+  uniforms['moonPosition'].value.copy(moon);
+
+
+  if(timeofDay > 0.5 && timeofDay < 1){
+    uniforms[ 'rayleigh' ].value = 0.1;
+    renderer.toneMappingExposure = 0.3;
+  }else if (timeofDay > 0.85){
+    renderer.toneMappingExposure = 0.4;
+  }
 }
 function resetSky(){
+  uniforms[ 'rayleigh' ].value = 0.3;
+  renderer.toneMappingExposure = 0.3;
   const elevation = 0; 
   const azimuth = 30; 
   const phi = THREE.MathUtils.degToRad( 90 - elevation );
 	const theta = THREE.MathUtils.degToRad( azimuth );
   sun.setFromSphericalCoords( 1, phi, theta );
   uniforms[ 'sunPosition' ].value.copy( sun );
+
+  const moonElevation = 0; 
+  const moonPhi = THREE.MathUtils.degToRad(90 - moonElevation);
+  const moonTheta = THREE.MathUtils.degToRad(azimuth);
+  moon.setFromSphericalCoords(1, moonPhi, moonTheta);
+  uniforms['moonPosition'].value.copy(moon);
+
+  renderer.toneMappingExposure = 0.4; // 0-1
+  uniforms['turbidity'].value = 5; // 0-20
+  uniforms['rayleigh'].value = 3; //0-4
+  uniforms['mieCoefficient'].value = 0.033; // 0-0.1
+  uniforms['mieDirectionalG'].value = 0.63; //0-1
+  updateSky(0);
 }
-
-
 
 function createObjects() {
   // ENVIRONMENT
+
+/*
   var environment = new EnvironmentGenerator(scene);
   environment.loadGLTFEnvironmentModel('models/american_style_house/scene.gltf');
   environment.loadGLTFEnvironmentModel('models/low_poly_wood_fence_on_grass/scene.gltf');
-  environment.loadGLTFEnvironmentModel('models/stylized_bush/scene.gltf');
+  environment.loadGLTFEnvironmentModel('models/stylized_bush/scene.gltf');*/
+
+  environment = new EnvironmentGenerator(scene, gcontrols.house);
 
   // LIGHTBULB
-  const bulbMass = 1.2;
+  const bulbMass = 12;
   const bulbRadius = 0.5;
-  const pos = new THREE.Vector3(0, 0, 0);
+  const pos = new THREE.Vector3(0, 5.5, 0);
   const quat = new THREE.Quaternion(0, 0, 0, 1);
-
-  // create lamp group
-  let fullLampGroup = new THREE.Group();
-  fullLampGroup.position.x = -6;
-  fullLampGroup.position.y = 4;
-  fullLampGroup.position.z = 0;
-  createLightBase(fullLampGroup, bulbRadius, quat);
 
   // light model
   lightbulb = makeBulbGroup();
@@ -178,22 +306,35 @@ function createObjects() {
   lightbulb.scale.set(0.5, 0.5, 0.5);
   lightbulb.name = "lightbulb";
 
-  //assign the light's position as the lightPoint that the boids will be attracted to
-  lightPoint = fullLampGroup.position;
+
+  // BASE
+  base = createLightBase(quat);
+  scene.add(base);
+
+  // assign the light's position as the lightPoint that the boids will be attracted to
+  lightPoint = base.position;
+  lightPoint.setY(lightPoint.y - 2);
   boidManager.setLightPoint(lightPoint);
 
-  // bulb physics 
-  const bulbShape = new Ammo.btSphereShape(bulbRadius * 0.5);
-  bulbShape.setMargin(margin - 0.3);
+
+  // create bulb physics 
+  const bulbShape = new Ammo.btSphereShape(bulbRadius);
+  bulbShape.setMargin(margin);
   createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
   lightbulb.userData.physicsBody.setFriction(0.5);
+  scene.add(lightbulb);
 
-  let ropeSoftBody;
-  const ropeNumSegments = 10;
-  const ropeLength = 4;
-  ropeSoftBody = createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, fullLampGroup, bulbRadius);
+  // create cable/rope
+  createCable(lightbulb, base);
+
+
+  // Makes base draggable
+  interactionHandler = new InteractionHandler(camera, renderer);
+  interactionHandlerDefined = true;
+  interactionHandler.addDragObject(base);
 }
 
+// returns lightbulb group
 function makeBulbGroup() {
   var yTranslation = 1.2;
 
@@ -215,114 +356,27 @@ function makeBulbGroup() {
   bulbLight.position.set(0, -1 + yTranslation, 0);
   bulbLight.castShadow = true;
 
-  // bulb physics 
-  // const bulbShape1 = new Ammo.btSphereShape(bulbRadius * 0.5);
-  // bulbShape1.setMargin(margin - 0.3);
-  // createRigidBody(bulbLight, bulbShape1, bulbMass, pos, quat);
-  // bulbLight.userData.physicsBody.setFriction(0.5);
-
   var d = 200;
 
   bulbLight.shadow.camera.left = -d;
   bulbLight.shadow.camera.right = d;
   bulbLight.shadow.camera.top = d;
   bulbLight.shadow.camera.bottom = -d;
+  bulbLight.shadow.camera.far = 1000;
 
-  bulbLight.shadow.camera.far = 100;
-
-  //stem
-  var bulbStem = new THREE.CylinderGeometry(0.5, 0.65, 0.55, 32);
-  var stemMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    emissive: 0xffffee,
-    emissiveIntensity: intensity,
-    metalness: 0.8,
-    roughness: 0
-  });
-
-  var bStem = new THREE.Mesh(bulbStem, stemMat);
-  bStem.position.set(0, -0.1 + yTranslation, 0);
-  bStem.castShadow = true;
-  bStem.receiveShadow = true;
-
-  //plug main
-  var bulbPlug = new THREE.CylinderGeometry(0.52, 0.52, 1.2, 32);
-
-  var plugMat = new THREE.MeshStandardMaterial({
-    color: 0x807d7a
-  });
-
-  var plug = new THREE.Mesh(bulbPlug, plugMat);
-  plug.position.set(0, 0.2 + yTranslation, 0);
-  plug.receiveShadow = true;
-  plug.castShadow = true;
-
-  //plug top
-  var topGeo = new THREE.CylinderGeometry(0.25, 0.3, 0.2, 32);
-
-  var topMat = new THREE.MeshStandardMaterial({
-    color: 0xe8d905
-  });
-  var plugTop = new THREE.Mesh(topGeo, topMat);
-  plugTop.position.set(0, 0.75 + yTranslation, 0);
-  plugTop.receiveShadow = true;
-  plugTop.castShadow = true;
-
-  //plug rings
-  var ringGeo = new THREE.TorusGeometry(0.52, 0.04, 4, 100);
-
-  var ringMat = new THREE.MeshStandardMaterial({
-    color: 0x807d7a
-  });
-
-  var ringY = 0.33;
-  for (var i = 0; i < 3; i++) {
-    var ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(0, ringY + yTranslation, 0);
-    group.add(ring);
-
-    ringY += 0.15;
-  }
-
-  //top ring
-  var topRingGeo = new THREE.TorusGeometry(0.49, 0.05, 16, 100);
-
-  var topRing = new THREE.Mesh(topRingGeo, ringMat);
-  topRing.position.set(0, 0.75 + yTranslation, 0);
-  topRing.rotation.x = -Math.PI / 2;
-
-  //bottom ring
-  var botRingGeo = new THREE.TorusGeometry(0.5, 0.05, 16, 100);
-
-  var botRing = new THREE.Mesh(botRingGeo, ringMat);
-  botRing.position.set(0, 0.15 + yTranslation, 0);
-  botRing.rotation.x = -Math.PI / 2;
-
-  //add to group
-  group.add(bStem);
+  bulbLight.name = "bulbLight";
   group.add(bulbLight);
-  group.add(plug);
-  group.add(plugTop);
-  group.add(botRing);
-  group.add(topRing);
-
-  // group position
-  group.position.x = 0;
-  group.position.y = 0;
-  group.position.z = 0;
-
   return group;
 }
 
-function createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group) {
-  // ROPE
-  // creates rope graphic object
-  const ropeMass = 3;
-  const ropePos = (lightbulb.position);
-  ropePos.x = 0;
-  ropePos.y = 5 - ropeLength;
-  ropePos.z = 0;
+function createCable(lightbulb, base) {
+  // The rope
+  // Rope graphic object
+  const ropeNumSegments = 10;
+  const ropeLength = 4;
+  const ropeMass = 12;
+  const ropePos = new THREE.Vector3(0.0, 6.0, 0.0);
+  //ropePos.y += bulbRadius;
 
   const segmentLength = ropeLength / ropeNumSegments;
   const ropeGeometry = new THREE.BufferGeometry();
@@ -344,10 +398,6 @@ function createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group
   rope = new THREE.LineSegments(ropeGeometry, ropeMaterial);
   rope.castShadow = true;
   rope.receiveShadow = true;
-  group.add(lightbulb);
-  group.add(rope);
-  group.add(base);
-  scene.add(group);
 
   // Rope physic object
   const softBodyHelpers = new Ammo.btSoftBodyHelpers();
@@ -361,44 +411,66 @@ function createCable(lightbulb, ropeSoftBody, ropeNumSegments, ropeLength, group
   Ammo.castObject(ropeSoftBody, Ammo.btCollisionObject).getCollisionShape().setMargin(margin * 3);
   physicsWorld.addSoftBody(ropeSoftBody, 1, -1);
   rope.userData.physicsBody = ropeSoftBody;
-
   // Disable deactivation
   ropeSoftBody.setActivationState(4);
+
+  // Hinge constraint to move the arm
+  const armLength = 2;
+  const pivotA = new Ammo.btVector3(0, ropePos.y * 0.5, 0);
+  const pivotB = new Ammo.btVector3(0, - 0.2, - armLength * 0.5);
+  const axis = new Ammo.btVector3(0, 1, 0);
+  //hinge = new Ammo.btHingeConstraint(pylon.userData.physicsBody, arm.userData.physicsBody, pivotA, pivotB, axis, axis, true);
+  //physicsWorld.addConstraint(hinge, true);
 
   // Glue the rope extremes to the ball and the arm
   const influence = 1;
   ropeSoftBody.appendAnchor(0, lightbulb.userData.physicsBody, true, influence);
   ropeSoftBody.appendAnchor(ropeNumSegments, base.userData.physicsBody, true, influence);
 
-  return ropeSoftBody;
+  //affectedObjects.push(rope);
+  isLightbulbThere = true;
+  scene.add(rope);
+
 }
 
-function createLightBase(group, bulbRadius, quat) {
+function createLightBase(quat) {
   // LIGHT BASE
   let baseMass = 0;
   let baseMaterial = new THREE.MeshPhongMaterial();
   baseMaterial.color = new THREE.Color(0xffffff);
-  base = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.2, 32), baseMaterial);
+  base = baseObject = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.2, 32), baseMaterial);
   base.position.x = 0;
-  base.position.y = 5;
+  base.position.y = 12;
   base.position.z = 0;
   base.castShadow = true;
   base.receiveShadow = true;
-  const baseShape = new Ammo.btBoxShape(0.2);
+  base.name = "base";
+
+  //Ammojs Section
+  let transform = new Ammo.btTransform();
+  transform.setIdentity();
+  transform.setOrigin(new Ammo.btVector3(base.position.x, base.position.y, base.position.z));
+  transform.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w));
+  let motionState = new Ammo.btDefaultMotionState(transform);
+
+  const baseShape = new Ammo.btBoxShape(new Ammo.btVector3(0.2, 0.2, 0.2));
   baseShape.setMargin(margin);
   createRigidBody(base, baseShape, baseMass, base.position, quat);
   base.userData.physicsBody.setFriction(0.5);
 
-  // Makes base draggable
-  const interactionHandler = new InteractionHandler(camera, renderer);
-  interactionHandler.addDragObject(group);
+  return base;
 }
 
+//input event listeners
 function initInput() {
-  // create new raycaster to track position of mouse
-  var mouse = new THREE.Vector2;
-  var raycaster = new THREE.Raycaster();
-  var selectedObj = false;
+  // Ensure resume of the audio context
+  const resumeAudio = () => {
+    if (listener.context.state === 'suspended') {
+      listener.context.resume();
+    }
+  };
+  document.addEventListener('click', resumeAudio);
+  document.addEventListener('touchstart', resumeAudio);
 }
 
 function ClearScene() {
@@ -407,18 +479,10 @@ function ClearScene() {
       scene.remove(scene.children[i]);
 }
 
-function CreateTransfMatrices() {}
+function CreateTransfMatrices() { }
 
 function CreateScene() {
   CreateTransfMatrices();
-
-  //create a xyz axis
-  const axesHelper = new THREE.AxesHelper(5);
-  if (scene != undefined) {
-    scene.add(axesHelper);
-  } else {
-    init();
-  }
 }
 
 // create a rigidbody for physics application
@@ -437,19 +501,22 @@ function createRigidBody(threeObject, physicsShape, mass, pos, quat) {
 
   const rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, physicsShape, localInertia);
   const body = new Ammo.btRigidBody(rbInfo);
+  body.setFriction(4);
 
+  physicsWorld.addRigidBody(body);
   threeObject.userData.physicsBody = body;
-
-  scene.add(threeObject);
+  //scene.add(threeObject);
 
   if (mass > 0) {
     rigidBodies.push(threeObject);
 
     // Disable deactivation
-    body.setActivationState(4);
+    body.setActivationState(STATE.DISABLE_DEACTIVATION);
+
+  } else {
+    body.setActivationState(STATE.DISABLE_DEACTIVATION);
   }
 
-  physicsWorld.addRigidBody(body);
 }
 
 let lastSkyUpdate = 0;
@@ -464,22 +531,26 @@ function animate() {
   const now = performance.now();
   const delta = clock.getDelta();
   elapsedTime += delta;
-  const totalDayTime = 5; //24seconds
+  //const totalDayTime = 5; //24seconds
+  const totalDayTime = lightSettings.totalDayTime;
   const timeOfDay = (elapsedTime % totalDayTime) / totalDayTime; // 0-1
-  if(elapsedTime >= totalDayTime){
+  if (elapsedTime >= totalDayTime) {
     resetSky();
     elapsedTime = 0;
     console.log("a new day");
   }
   if (now - lastSkyUpdate > updateInterval) {
     updateSky(timeOfDay);
-    lastSkyUpdate = now; 
+    updateBoidBehaviorBasedOnTime(timeOfDay);
+    lastSkyUpdate = now;
   }
+
   renderer.render(scene, camera);
 }
 
 function updatePhysics(deltaTime) {
   // Step world
+  //physicsWorld.stepSimulation(deltaTime,1, 10);
   physicsWorld.stepSimulation(deltaTime, 10);
 
   // Update rope
@@ -510,43 +581,12 @@ function updatePhysics(deltaTime) {
       const q = transformAux1.getRotation();
       objThree.position.set(p.x(), p.y(), p.z());
       objThree.quaternion.set(q.x(), q.y(), q.z(), q.w());
+
     }
+
   }
+
 }
-
-//////////////
-//GPUCompute//
-//////////////
-/*
-function initComputeRenderer() {
-  const gpuCompute = new GPUComputationRenderer( 1024, 1024, renderer );
-  const dtPosition = gpuCompute.createTexture();
-  const dtVelocity = gpuCompute.createTexture();
-  fillPositionTexture( dtPosition );
-  fillVelocityTexture( dtVelocity );
-
-  velocityVariable = gpuCompute.addVariable( 'textureVelocity', document.getElementById( 'fragmentShaderVelocity' ).textContent, dtVelocity );
-  positionVariable = gpuCompute.addVariable( 'texturePosition', document.getElementById( 'fragmentShaderPosition' ).textContent, dtPosition );
-
-  gpuCompute.setVariableDependencies( velocityVariable, [ positionVariable, velocityVariable ] );
-  gpuCompute.setVariableDependencies( positionVariable, [ positionVariable, velocityVariable ] );
-
-  positionUniforms = positionVariable.material.uniforms;
-  velocityUniforms = velocityVariable.material.uniforms;
-
-  positionUniforms[ 'time' ] = { value: 0.0 };
-  positionUniforms[ 'delta' ] = { value: 0.0 };
-  velocityUniforms[ 'time' ] = { value: 1.0 };
-  velocityUniforms[ 'delta' ] = { value: 0.0 };
-  velocityUniforms[ 'testing' ] = { value: 1.0 };
-  velocityUniforms[ 'separationDistance' ] = { value: 1.0 };
-  velocityUniforms[ 'alignmentDistance' ] = { value: 1.0 };
-  velocityUniforms[ 'cohesionDistance' ] = { value: 1.0 };
-  velocityUniforms[ 'freedomFactor' ] = { value: 1.0 };
-  velocityUniforms[ 'predator' ] = { value: new THREE.Vector3() };
-  velocityVariable.material.defines.BOUNDS = BOUNDS.toFixed( 2 );
-}
-*/
 
 //////////////
 //  Boids   //
@@ -573,15 +613,17 @@ var deltaTime;
 
 var MyUpdateLoop = function () {
   deltaTime = clock.getDelta();
+  if (interactionHandlerDefined) {
+    interactionHandler.moveBall();
+  }
   CreateScene();
   for (let i = 0; i < scene.children.length; i++) {
-    if (lightbulb != null) {
+    if (isLightbulbThere) {
       updatePhysics(deltaTime);
     }
   }
   //render()
   renderer.render(scene, camera);
-
 
   boidManager.updateBoids(deltaTime);
 
@@ -591,7 +633,20 @@ var MyUpdateLoop = function () {
   //controls.update();
 
   //requestAnimationFrame(MyUpdateLoop);
+
 };
+
+function updateBoidBehaviorBasedOnTime(timeOfDay){
+  if(timeOfDay > 0.5 && timeOfDay < 1){
+    console.log(boidManager.velocity);
+    boidManager.updateVelocity(0.8);
+    boidManager.updateLightAttraction(30);
+  }else if(timeOfDay <= 0.5){
+    console.log(boidManager.velocity);
+    boidManager.updateVelocity(0.1);
+    boidManager.updateLightAttraction(2);
+  }
+}
 
 //requestAnimationFrame(MyUpdateLoop);
 
@@ -629,3 +684,26 @@ var MyResize = function () {
 
 //link the resize of the window to the update of the camera
 window.addEventListener('resize', MyResize);
+
+// initializes GUI
+
+const gui = new dat.GUI();
+
+// Add a dropdown control for selecting house types
+
+gui.add(gcontrols, 'house', houses).name('House').listen()
+  .onChange(function (newValue) {
+    environment.houseMesh = environment.loadNewHouse(newValue);
+  });
+
+gui.add(lightSettings, 'brightness', 0, 10).name('Light Brightness').onChange(updateLightSettings);
+gui.add(lightSettings, 'totalDayTime', 5, 60, 1).name('totalDayTime').onChange();
+gui.add(lightSettings, 'soundPlaying').name('Sound Play/Pause').onChange(toggleSound);
+gui.add({volume: backgroundMusicVolume}, 'volume', 0, 1).name('Music').onChange(function (value) {
+  backgroundMusicVolume = value;
+  updateBackgroundMusicVolume();
+});
+
+gui.open();
+
+

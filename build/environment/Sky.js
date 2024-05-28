@@ -54,11 +54,13 @@ Sky.SkyShader = {
 		'mieCoefficient': { value: 0.005 },
 		'mieDirectionalG': { value: 0.8 },
 		'sunPosition': { value: new Vector3() },
-		'up': { value: new Vector3( 0, 1, 0 ) }
+		'up': { value: new Vector3( 0, 1, 0 ) },
+		'moonPosition': { value: new Vector3() },
 	},
 
 	vertexShader: /* glsl */`
 		uniform vec3 sunPosition;
+		uniform vec3 moonPosition;
 		uniform float rayleigh;
 		uniform float turbidity;
 		uniform float mieCoefficient;
@@ -66,10 +68,13 @@ Sky.SkyShader = {
 
 		varying vec3 vWorldPosition;
 		varying vec3 vSunDirection;
+		varying vec3 vMoonDirection;
 		varying float vSunfade;
+		varying float vMoonfade;
 		varying vec3 vBetaR;
 		varying vec3 vBetaM;
 		varying float vSunE;
+		varying float vMoonE;
 
 		// constants for atmospheric scattering
 		const float e = 2.71828182845904523536028747135266249775724709369995957;
@@ -98,6 +103,10 @@ Sky.SkyShader = {
 			zenithAngleCos = clamp( zenithAngleCos, -1.0, 1.0 );
 			return EE * max( 0.0, 1.0 - pow( e, -( ( cutoffAngle - acos( zenithAngleCos ) ) / steepness ) ) );
 		}
+		float moonIntensity(float zenithAngleCos) {
+			zenithAngleCos = clamp(zenithAngleCos, -1.0, 1.0);
+			return 0.05 * EE * max(0.0, 1.0 - pow(e, -((cutoffAngle - acos(zenithAngleCos)) / steepness)));
+		  }
 
 		vec3 totalMie( float T ) {
 			float c = ( 0.2 * T ) * 10E-18;
@@ -113,10 +122,13 @@ Sky.SkyShader = {
 			gl_Position.z = gl_Position.w; // set z to camera.far
 
 			vSunDirection = normalize( sunPosition );
+			vMoonDirection = normalize(moonPosition);
 
 			vSunE = sunIntensity( dot( vSunDirection, up ) );
+			vMoonE = moonIntensity(dot(vMoonDirection, up));
 
 			vSunfade = 1.0 - clamp( 1.0 - exp( ( sunPosition.y / 450000.0 ) ), 0.0, 1.0 );
+			vMoonfade = 1.0 - clamp(1.0 - exp((moonPosition.y / 450000.0)), 0.0, 1.0);
 
 			float rayleighCoefficient = rayleigh - ( 1.0 * ( 1.0 - vSunfade ) );
 
@@ -132,10 +144,13 @@ Sky.SkyShader = {
 	fragmentShader: /* glsl */`
 		varying vec3 vWorldPosition;
 		varying vec3 vSunDirection;
+		varying vec3 vMoonDirection;
 		varying float vSunfade;
+		varying float vMoonfade;
 		varying vec3 vBetaR;
 		varying vec3 vBetaM;
 		varying float vSunE;
+		varying float vMoonE;
 
 		uniform float mieDirectionalG;
 		uniform vec3 up;
@@ -182,16 +197,32 @@ Sky.SkyShader = {
 			vec3 Fex = exp( -( vBetaR * sR + vBetaM * sM ) );
 
 			// in scattering
-			float cosTheta = dot( direction, vSunDirection );
+			//float cosTheta = dot( direction, vSunDirection );
+			float cosThetaSun = dot( direction, vSunDirection );
+			float cosThetaMoon = dot( direction, vMoonDirection );
 
-			float rPhase = rayleighPhase( cosTheta * 0.5 + 0.5 );
-			vec3 betaRTheta = vBetaR * rPhase;
+			//float rPhase = rayleighPhase( cosTheta * 0.5 + 0.5 );
+			//vec3 betaRTheta = vBetaR * rPhase;
+			float rPhaseSun = rayleighPhase(cosThetaSun * 0.5 + 0.5);
+			vec3 betaRSunTheta = vBetaR * rPhaseSun;
+			float rPhaseMoon = rayleighPhase(cosThetaMoon * 0.5 + 0.5);
+      		vec3 betaRMoonTheta = vBetaR * rPhaseMoon;
 
-			float mPhase = hgPhase( cosTheta, mieDirectionalG );
-			vec3 betaMTheta = vBetaM * mPhase;
+			//float mPhase = hgPhase( cosTheta, mieDirectionalG );
+			//vec3 betaMTheta = vBetaM * mPhase;
+			float mPhaseSun = hgPhase(cosThetaSun, mieDirectionalG);
+      		vec3 betaMSunTheta = vBetaM * mPhaseSun;
+			float mPhaseMoon = hgPhase(cosThetaMoon, mieDirectionalG);
+			vec3 betaMMoonTheta = vBetaM * mPhaseMoon;
+			
+			//vec3 Lin = pow( vSunE * ( ( betaRTheta + betaMTheta ) / ( vBetaR + vBetaM ) ) * ( 1.0 - Fex ), vec3( 1.5 ) );
+			//Lin *= mix( vec3( 1.0 ), pow( vSunE * ( ( betaRTheta + betaMTheta ) / ( vBetaR + vBetaM ) ) * Fex, vec3( 1.0 / 2.0 ) ), clamp( pow( 1.0 - dot( up, vSunDirection ), 5.0 ), 0.0, 1.0 ) );
+			vec3 LinSun = pow(vSunE * ((betaRSunTheta + betaMSunTheta) / (vBetaR + vBetaM)) * (1.0 - Fex), vec3(1.5));
+      		LinSun *= mix(vec3(1.0), pow(vSunE * ((betaRSunTheta + betaMSunTheta) / (vBetaR + vBetaM)) * Fex, vec3(1.0 / 2.0)), clamp(pow(1.0 - dot(up, vSunDirection), 5.0), 0.0, 1.0));
+      		vec3 LinMoon = pow(vMoonE * ((betaRMoonTheta + betaMMoonTheta) / (vBetaR + vBetaM)) * (1.0 - Fex), vec3(1.5));
+      		LinMoon *= mix(vec3(1.0), pow(vMoonE * ((betaRMoonTheta + betaMMoonTheta) / (vBetaR + vBetaM)) * Fex, vec3(1.0 / 2.0)), clamp(pow(1.0 - dot(up, vMoonDirection), 5.0), 0.0, 1.0));
 
-			vec3 Lin = pow( vSunE * ( ( betaRTheta + betaMTheta ) / ( vBetaR + vBetaM ) ) * ( 1.0 - Fex ), vec3( 1.5 ) );
-			Lin *= mix( vec3( 1.0 ), pow( vSunE * ( ( betaRTheta + betaMTheta ) / ( vBetaR + vBetaM ) ) * Fex, vec3( 1.0 / 2.0 ) ), clamp( pow( 1.0 - dot( up, vSunDirection ), 5.0 ), 0.0, 1.0 ) );
+
 
 			// nightsky
 			float theta = acos( direction.y ); // elevation --> y-axis, [-pi/2, pi/2]
@@ -199,11 +230,15 @@ Sky.SkyShader = {
 			vec2 uv = vec2( phi, theta ) / vec2( 2.0 * pi, pi ) + vec2( 0.5, 0.0 );
 			vec3 L0 = vec3( 0.1 ) * Fex;
 
-			// composition + solar disc
-			float sundisk = smoothstep( sunAngularDiameterCos, sunAngularDiameterCos + 0.00002, cosTheta );
-			L0 += ( vSunE * 19000.0 * Fex ) * sundisk;
 
-			vec3 texColor = ( Lin + L0 ) * 0.04 + vec3( 0.0, 0.0003, 0.00075 );
+			// composition + solar disc
+			float sundisk = smoothstep( sunAngularDiameterCos, sunAngularDiameterCos + 0.00002, cosThetaSun );
+			L0 += ( vSunE * 19000.0 * Fex ) * sundisk;
+			//float moondisk = smoothstep(sunAngularDiameterCos, sunAngularDiameterCos + 0.00002, cosThetaMoon);
+      		//L0 += (vMoonE * 19000.0 * Fex) * moondisk*0.001;
+
+			//vec3 texColor = ( Lin + L0 ) * 0.04 + vec3( 0.0, 0.0003, 0.00075 );
+			vec3 texColor = (LinSun + LinMoon + L0) * 0.04 + vec3(0.0, 0.0003, 0.00075);
 
 			vec3 retColor = pow( texColor, vec3( 1.0 / ( 1.2 + ( 1.2 * vSunfade ) ) ) );
 
