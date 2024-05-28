@@ -4,15 +4,15 @@ import { EnvironmentGenerator } from './EnvironmentGenerator.js';
 import { InteractionHandler } from './InteractionHandler.js';
 import { BoidManager } from './BoidManager.js';
 import { GLTFLoader } from './build/loaders/GLTFLoader.js';
-import { GPUComputationRenderer } from './build/misc/GPUComputationRenderer.js';
 import { Sky } from './build/environment/Sky.js';
 import { GUI } from './build/controls/dat.gui.module.js';
+import { AudioLoader, AudioListener, Audio } from 'three';
 
 // GRAPHICS CONST
 let camera, controls, renderer;
 let scene = new THREE.Scene();
 // PHYSICS CONST
-const gravityConstant = - 9.8;
+const gravityConstant = -9.8;
 let collisionConfiguration;
 let dispatcher;
 let broadphase;
@@ -37,8 +37,13 @@ let transformAux1;
 // GUI Controls
 
 let lightSettings = {
-  brightness: 1.0
+  brightness: 1.0,
+  soundPlaying: true
 };
+
+// Audio
+let listener, sound, audioLoader;
+
 let baseObject = null;
 const STATE = { DISABLE_DEACTIVATION: 4 }
 //let armMovement = 0;
@@ -73,6 +78,9 @@ function init() {
   createObjects();
   initInput();
   initSky();
+  initSound();
+  // DEBUGGING
+  console.log(scene.children);
 }
 
 function initGraphics() {
@@ -109,7 +117,11 @@ function initGraphics() {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
   document.body.appendChild(renderer.domElement);
-  
+
+  // Add GUI controls
+  gui = new GUI();
+  gui.add(lightSettings, 'brightness', 0, 5).name('Light Brightness').onChange(updateLightSettings);
+  gui.add(lightSettings, 'soundPlaying').name('Sound Play/Pause').onChange(toggleSound);
 
   // Orbit Controls
   controls = new OrbitControls(camera, renderer.domElement);
@@ -117,7 +129,7 @@ function initGraphics() {
   controls.enablePan = false;
 }
 
-function updateLightBrightness() {
+function updateLightSettings() {
   if (lightbulb) {
     lightbulb.children.forEach(child => {
       if (child.isPointLight) {
@@ -128,6 +140,38 @@ function updateLightBrightness() {
       }
     });
   }
+  updateSoundVolume();
+}
+
+function updateSoundVolume() {
+  if (sound) {
+    sound.setVolume(lightSettings.brightness / 5);
+  }
+}
+
+function toggleSound() {
+  if (sound) {
+    if (lightSettings.soundPlaying) {
+      sound.play();
+    } else {
+      sound.pause();
+    }
+  }
+}
+
+function initSound() {
+  listener = new AudioListener();
+  camera.add(listener);
+
+  sound = new Audio(listener);
+
+  audioLoader = new AudioLoader();
+  audioLoader.load('build/sounds/wings.mp3', function (buffer) {
+    sound.setBuffer(buffer);
+    sound.setLoop(true);
+    sound.setVolume(lightSettings.brightness / 5);
+    sound.play();
+  });
 }
 
 function initPhysics() {
@@ -180,8 +224,6 @@ function resetSky() {
   sun.setFromSphericalCoords(1, phi, theta);
   uniforms['sunPosition'].value.copy(sun);
 }
-
-
 
 function createObjects() {
   // ENVIRONMENT
@@ -252,103 +294,16 @@ function makeBulbGroup() {
   bulbLight.position.set(0, -1 + yTranslation, 0);
   bulbLight.castShadow = true;
 
-  // bulb physics 
-  // const bulbShape1 = new Ammo.btSphereShape(bulbRadius * 0.5);
-  // bulbShape1.setMargin(margin - 0.3);
-  // createRigidBody(bulbLight, bulbShape1, bulbMass, pos, quat);
-  // bulbLight.userData.physicsBody.setFriction(0.5);
-
   var d = 200;
 
   bulbLight.shadow.camera.left = -d;
   bulbLight.shadow.camera.right = d;
   bulbLight.shadow.camera.top = d;
   bulbLight.shadow.camera.bottom = -d;
+  bulbLight.shadow.camera.far = 1000;
 
-  bulbLight.shadow.camera.far = 100;
-
-  //stem
-  var bulbStem = new THREE.CylinderGeometry(0.5, 0.65, 0.55, 32);
-  var stemMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    emissive: 0xffffee,
-    emissiveIntensity: intensity,
-    metalness: 0.8,
-    roughness: 0
-  });
-
-  var bStem = new THREE.Mesh(bulbStem, stemMat);
-  bStem.position.set(0, -0.1 + yTranslation, 0);
-  bStem.castShadow = true;
-  bStem.receiveShadow = true;
-
-  //plug main
-  var bulbPlug = new THREE.CylinderGeometry(0.52, 0.52, 1.2, 32);
-
-  var plugMat = new THREE.MeshStandardMaterial({
-    color: 0x807d7a
-  });
-
-  var plug = new THREE.Mesh(bulbPlug, plugMat);
-  plug.position.set(0, 0.2 + yTranslation, 0);
-  plug.receiveShadow = true;
-  plug.castShadow = true;
-
-  //plug top
-  var topGeo = new THREE.CylinderGeometry(0.25, 0.3, 0.2, 32);
-
-  var topMat = new THREE.MeshStandardMaterial({
-    color: 0xe8d905
-  });
-  var plugTop = new THREE.Mesh(topGeo, topMat);
-  plugTop.position.set(0, 0.75 + yTranslation, 0);
-  plugTop.receiveShadow = true;
-  plugTop.castShadow = true;
-
-  //plug rings
-  var ringGeo = new THREE.TorusGeometry(0.52, 0.04, 4, 100);
-
-  var ringMat = new THREE.MeshStandardMaterial({
-    color: 0x807d7a
-  });
-
-  var ringY = 0.33;
-  for (var i = 0; i < 3; i++) {
-    var ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(0, ringY + yTranslation, 0);
-    group.add(ring);
-
-    ringY += 0.15;
-  }
-
-  //top ring
-  var topRingGeo = new THREE.TorusGeometry(0.49, 0.05, 16, 100);
-
-  var topRing = new THREE.Mesh(topRingGeo, ringMat);
-  topRing.position.set(0, 0.75 + yTranslation, 0);
-  topRing.rotation.x = -Math.PI / 2;
-
-  //bottom ring
-  var botRingGeo = new THREE.TorusGeometry(0.5, 0.05, 16, 100);
-
-  var botRing = new THREE.Mesh(botRingGeo, ringMat);
-  botRing.position.set(0, 0.15 + yTranslation, 0);
-  botRing.rotation.x = -Math.PI / 2;
-
-  //add to group
-  group.add(bStem);
+  bulbLight.name = "bulbLight";
   group.add(bulbLight);
-  group.add(plug);
-  group.add(plugTop);
-  group.add(botRing);
-  group.add(topRing);
-
-  // group position
-  group.position.x = 0;
-  group.position.y = 0;
-  group.position.z = 0;
-
   return group;
 }
 
@@ -444,11 +399,16 @@ function createLightBase(quat) {
   return base;
 }
 
+//input event listeners
 function initInput() {
-  // create new raycaster to track position of mouse
-  var mouse = new THREE.Vector2;
-  var raycaster = new THREE.Raycaster();
-  var selectedObj = false;
+  // Ensure resume of the audio context
+  const resumeAudio = () => {
+    if (listener.context.state === 'suspended') {
+      listener.context.resume();
+    }
+  };
+  document.addEventListener('click', resumeAudio);
+  document.addEventListener('touchstart', resumeAudio);
 }
 
 function ClearScene() {
@@ -634,7 +594,6 @@ var MyUpdateLoop = function () {
   }
   //render()
   renderer.render(scene, camera);
-
 
   boidManager.updateBoids(deltaTime);
 
