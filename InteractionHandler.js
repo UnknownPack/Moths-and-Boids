@@ -3,12 +3,10 @@ import { DragControls } from './build/controls/DragControls.js';
 
 export class InteractionHandler {
 
-    constructor(camera, renderer, orbitControls, rope) {
+    constructor(camera, renderer) {
         this.draggedObjects = [];
         this.camera = camera;
         this.renderer = renderer;
-        this.orbitControls = orbitControls;
-        this.rope = rope;
         const controls = new DragControls(this.draggedObjects, camera, renderer.domElement);
         this.moveDirection = { left: 0, right: 0, forward: 0, back: 0 };
         this.dragDirection = 0;
@@ -27,6 +25,7 @@ export class InteractionHandler {
 
         controls.addEventListener('dragend', (event) => {
             this.currentXPosition = this.draggedObjects[0].position.x;
+            this.draggedObjects[0].position.y = 10;
         });
     }
 

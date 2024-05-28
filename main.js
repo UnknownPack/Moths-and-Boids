@@ -34,7 +34,6 @@ let lightbulb;
 let isLightbulbThere = false, interactionHandlerDefined = false;
 let lightPoint //= new THREE.Vector3(0, 5, 3);
 let ropeSoftBody;
-var affectedObjects = [];
 let transformAux1;
 
 
@@ -88,9 +87,6 @@ function init() {
   console.log(scene.children);
 
   initSound();
-  // DEBUGGING
-  console.log(scene.children);
-
 }
 
 
@@ -299,7 +295,7 @@ function createObjects() {
   lightbulb.position.z = pos.z;
   lightbulb.scale.set(0.5, 0.5, 0.5);
   lightbulb.name = "lightbulb";
-  affectedObjects.push(lightbulb);
+
 
   // BASE
   base = createLightBase(quat);
@@ -318,11 +314,11 @@ function createObjects() {
   scene.add(lightbulb);
 
   // create cable/rope
-  createCable(lightbulb, bulbRadius, base, affectedObjects);
+  createCable(lightbulb, base);
 
 
   // Makes base draggable
-  interactionHandler = new InteractionHandler(camera, renderer, transformAux1, affectedObjects);
+  interactionHandler = new InteractionHandler(camera, renderer);
   interactionHandlerDefined = true;
   interactionHandler.addDragObject(base);
 }
@@ -362,7 +358,7 @@ function makeBulbGroup() {
   return group;
 }
 
-function createCable(lightbulb, bulbRadius, base, affectedObjects) {
+function createCable(lightbulb, base) {
   // The rope
   // Rope graphic object
   const ropeNumSegments = 10;
