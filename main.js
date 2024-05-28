@@ -163,7 +163,6 @@ function createObjects() {
   const bulbRadius = 0.5;
   const pos = new THREE.Vector3(0, 0, 0);
   const quat = new THREE.Quaternion(0, 0, 0, 1);
-  const quat = new THREE.Quaternion(0, 0, 0, 1);
 
   // create lamp group
   let fullLampGroup = new THREE.Group();
@@ -184,7 +183,6 @@ function createObjects() {
   boidManager.setLightPoint(lightPoint);
 
   // bulb physics 
-  const bulbShape = new Ammo.btSphereShape(bulbRadius * 0.5);
   const bulbShape = new Ammo.btSphereShape(bulbRadius * 0.5);
   bulbShape.setMargin(margin - 0.3);
   createRigidBody(lightbulb, bulbShape, bulbMass, pos, quat);
