@@ -32,7 +32,8 @@ let transformAux1;
 
 
 let guiControls = {
-  totalDayTime: 10
+  totalDayTime: 10,
+  model: 'forest_house'
 };
 
 //let armMovement = 0;
@@ -56,6 +57,7 @@ function init() {
   initInput();
   initSky();
   initGUI();
+  //loadModel(guiControls.model);
   // DEBUGGING
   console.log(scene.children);
 }
@@ -63,12 +65,27 @@ function init() {
 function initGUI(){
   const gui = new GUI();
   gui.add(guiControls, 'totalDayTime', 5, 60, 1).name('totalDayTime').onChange(guiChanged);
-  //gui.add();
+  //gui.add(guiControls, 'model', ['american_style_house', 'forest_house']).name('Select Model').onChange(loadModel);
 
 }
 function guiChanged(){
   //console.log(`Day duration updated to ${value} seconds`);
 }
+/*
+function loadModel(model){
+  if (currentModel) {
+    scene.remove(currentModel);
+  }
+  switch(model){
+    case 'american_style_house':
+      environment.loadGLTFEnvironmentModel('models/american_style_house/scene.gltf');
+      break;
+    case 'forest_house':
+      environment.loadGLTFEnvironmentModel('models/forest_house/scene.gltf');
+      break;
+  }
+}*/
+
 
 function initGraphics() {
   var ratio = window.innerWidth / window.innerHeight;
