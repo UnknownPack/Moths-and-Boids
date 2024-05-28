@@ -136,19 +136,12 @@ export class Boid{
                     avoidanceForce.add(direction);  
                 }
             }
-        }
-        /*
-        if (avoidanceForce.length() > maxAvoidanceForce) {
-            avoidanceForce.normalize().multiplyScalar(maxAvoidanceForce);
-        }
-        */
-    
-        // Quaternion rotation to lean back from obstacles
+        } 
         if (!avoidanceForce.equals(new THREE.Vector3(0, 0, 0))) {
-            const currentDirection = new THREE.Vector3(0, 0, 1);  // Assuming the backward direction
+            const currentDirection = new THREE.Vector3(0, 0, 1); 
             const targetDirection = avoidanceForce.clone().normalize();
             const quaternionTarget = new THREE.Quaternion().setFromUnitVectors(currentDirection, targetDirection);
-            this.boidMesh.quaternion.slerp(quaternionTarget, 0.05); // Adjust the factor as needed
+            this.boidMesh.quaternion.slerp(quaternionTarget, 0.05); 
         }
     
         return avoidanceForce;

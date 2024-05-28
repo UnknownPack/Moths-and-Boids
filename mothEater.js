@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-
+// cut from final project/ product
 export class mothEater{
 
     constructor(position, startPos, endPos, speed, eatRange, geometry, material, scene){

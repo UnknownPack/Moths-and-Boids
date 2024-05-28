@@ -1,18 +1,14 @@
-export class spatialGrid{
-    // Initialize the grid with dimensions and cell size.
+export class spatialGrid{ 
     constructor(gridSize, cellSize) {
-        this.gridSize = gridSize; // Dimensions of the grid in 3D space.
-        this.cellSize = cellSize; // Length of each side of a cubic cell.
-        this.cells = {}; // Stores objects with a cell coordinate key.
-        // Calculate the number of cells needed along each axis.
+        this.gridSize = gridSize;  
+        this.cellSize = cellSize;  
+        this.cells = {};  
         this.dimensions = {
             x: Math.ceil(gridSize.x / cellSize),
             y: Math.ceil(gridSize.y / cellSize),
             z: Math.ceil(gridSize.z / cellSize)
         };
-    }
-
-    // Generate a string key based on cell coordinates for identifying cells.
+    } 
     _cellKey(x, y, z) {
         return `${x}_${y}_${z}`;
     }
@@ -34,11 +30,8 @@ export class spatialGrid{
         const [x, y, z] = spatialKey.split("_").map(Number); 
         for (let i = -1; i <= 1; i++) {
             for (let j = -1; j <= 1; j++) {
-                for (let k = -1; k <= 1; k++) {
-                    // Calculate the key for the current adjacent cell
-                    const adjacentKey = this._cellKey(x + i, y + j, z + k);
-                    
-                    // If the cell exists, add its boids to the nearbyBoids array
+                for (let k = -1; k <= 1; k++) { 
+                    const adjacentKey = this._cellKey(x + i, y + j, z + k); 
                     if (this.cells[adjacentKey]) {
                         nearbyBoids = nearbyBoids.concat(this.cells[adjacentKey]);
                     }
@@ -48,8 +41,7 @@ export class spatialGrid{
         return nearbyBoids;
     }
 
-    clear() {
-        // Reset the cells object, effectively clearing the grid.
+    clear() { 
         this.cells = {};
     }
   }
