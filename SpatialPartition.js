@@ -17,35 +17,21 @@ export class spatialGrid{
         return `${x}_${y}_${z}`;
     }
 
-    insertBoidAtPosition(boid, position) {
-        // Calculate the cell indices based on the position.
+    insertBoidAtPosition(boid, position) { 
         const x = Math.floor(position.x / this.cellSize);
         const y = Math.floor(position.y / this.cellSize);
-        const z = Math.floor(position.z / this.cellSize);
-    
-        // Generate the cell's unique key.
-        const key = this._cellKey(x, y, z);
-    
-        // Initialize the cell's array if it doesn't already exist.
+        const z = Math.floor(position.z / this.cellSize); 
+        const key = this._cellKey(x, y, z); 
         if (!this.cells[key]) {
             this.cells[key] = [];
-        }
-    
-        // Add the boid to the cell.
-        this.cells[key].push(boid);
-    
-        // Additionally, set the boid's spatialKey to the cell key for easy reference.
+        } 
+        this.cells[key].push(boid); 
         boid.updateSpatialKey(key);
-    }
+    }  
 
-    getBoidsInAdjacentCellsByKey(spatialKey) {
-        // Initialize an array to hold all nearby boids
-        let nearbyBoids = [];
-    
-        // Parse the spatialKey to get x, y, z indices of the cell
-        const [x, y, z] = spatialKey.split("_").map(Number);
-    
-        // Iterate over the target cell and its adjacent cells in all directions
+    getBoidsInAdjacentCellsByKey(spatialKey) { 
+        let nearbyBoids = []; 
+        const [x, y, z] = spatialKey.split("_").map(Number); 
         for (let i = -1; i <= 1; i++) {
             for (let j = -1; j <= 1; j++) {
                 for (let k = -1; k <= 1; k++) {
@@ -58,9 +44,7 @@ export class spatialGrid{
                     }
                 }
             }
-        }
-    
-        // Return the aggregated list of boids from the adjacent cells
+        } 
         return nearbyBoids;
     }
 
