@@ -12,16 +12,17 @@ export class mothEater{
 
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(this.startPos);
+        this.mesh.scale.set(30, 30, 30);
+        this.mesh.rotation.set( 0, Math.PI / 2, 0); 
         this.scene = scene;
-        this.scene.add(this.mesh)
-
+        this.scene.add(this.mesh) 
         this.finished  = false;
     }
 
     update(deltaTime){
+        console.log(this.mesh.position);
         let direction = new THREE.Vector3().subVectors(this.endPos, this.startPos).normalize();   
         this.managePosition(direction, deltaTime)
-        this.manageRotation(direction, deltaTime);
         if(this.position.distanceTo(this.endPos)>= 0.05){
             this.finished = true;
         }
@@ -32,23 +33,16 @@ export class mothEater{
         // Calculate new position
         const newPosition = new THREE.Vector3().copy(this.position).add(direction.multiplyScalar(distanceToMove));
         
-        // Check if the new position has reached or passed the end position
-        /*
         if (newPosition.distanceTo(this.startPos) >= this.startPos.distanceTo(this.endPos)) {
             newPosition.copy(this.endPos); // Snap to the end position if it's reached or passed
+            if(this.mesh !=null) this.scene.remove(this.mesh); 
+            if (this.mesh.material) this.mesh.material.dispose();
+            if (this.mesh.geometry) this.mesh.geometry.dispose(); 
         }
-        */
+        
         this.position.copy(newPosition);
         this.mesh.position.copy(newPosition);  
-    }
-
-    manageRotation(direction, deltaTime){
-    // Calculate the quaternion to make the object face the direction it is moving
-    let targetQuaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1),direction);
-    // Smoothly interpolate the current quaternion to the target quaternion
-    this.quaternion.slerp(targetQuaternion, deltaTime * this.speed);
-    this.mesh.quaternion.copy(this.quaternion);
-    }
+    } 
 
     givePos(){
         return this.position;

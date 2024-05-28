@@ -555,7 +555,7 @@ function initComputeRenderer() {
 // Create boid manager
 //these parameters can be changed
 
-const numberOfBoids = 1500;
+const numberOfBoids = 100;
 const obstacles = [];
 const velocity = 0.5;
 const maxSpeed = 0.1;
@@ -607,9 +607,10 @@ function handleKeyDown(event) {
     n--;
     n = Math.max(n, 5);
     CreateScene();
-  }
+  } 
   if (event.keyCode === 32) {
-    reverse = !reverse;
+    boidManager.spawnFlyer_mothEater();
+    console.log("spanwed moth eaters");
   }
 }
 

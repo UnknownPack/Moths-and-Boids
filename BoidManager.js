@@ -57,6 +57,8 @@ export class BoidManager {
                     if (child.isMesh) {
                         this.mothEaterOBJ = child.geometry;
                         this.mothEaterMAT = child.material; 
+                        this.mothEaterMAT.color.set(0x000000);
+                        
                     }
                 });
             }, null, (error) => {
@@ -155,7 +157,7 @@ export class BoidManager {
                         boid.geometry.dispose();
                         boid.material.dispose(); 
                         this.grid.cells[spatialKey].splice(i, 1); // Remove boid from the cell array
-    
+                        console.log("ate a moth!");
                         const index = this.boids.indexOf(boid); // Also remove boid from the main boids array
                         if (index !== -1) {
                             this.boids.splice(index, 1);
@@ -168,12 +170,11 @@ export class BoidManager {
         }
     }
 
-    spawnFlyer_mothEater(){
-        let position = new THREE.Vector3(0,1000, getRandomInt(-3,4));
-        let endPos = new THREE.Vector3(0,-1000, getRandomInt(-3,4));
-        let speed = getRandomFloat(0.5,2.5);
+    spawnFlyer_mothEater(){ 
+        let position = new THREE.Vector3(-5,this.lightPoint.y, 0);
+        let endPos = new THREE.Vector3(5,this.lightPoint.y, 0);
         let eatRange = 3;  
-        const newMothEater = new mothEater(position, position, endPos, speed, eatRange, this.mothEaterOBJ, this.mothEaterMAT, this.scene); 
+        const newMothEater = new mothEater(position, position, endPos, 2, eatRange, this.mothEaterOBJ, this.mothEaterMAT, this.scene); 
         this.mothEaters.push(newMothEater);
     }
 
