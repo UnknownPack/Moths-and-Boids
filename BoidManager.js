@@ -213,48 +213,48 @@ export class BoidManager {
     }
 
     removeMoths(count) {
-        for (let i = 0; i < count; i++) {
-            if (this.boids.length != 0) {
-                // Remove boid from the array
-                const boidToRemove = this.boids.pop();
-    
-                // Remove boid from the scene if it exists
-                if (boidToRemove && boidToRemove.boidMesh) {
-                    this.scene.remove(boidToRemove.boidMesh);
-    
-                    // Dispose geometry and material if they exist
-                    if (boidToRemove.boidMesh.geometry) {
-                        boidToRemove.boidMesh.geometry.dispose();
-                    } else {
-                        console.warn('Boid geometry is undefined.');
-                    }
-    
-                    if (boidToRemove.boidMesh.material) {
-                        boidToRemove.boidMesh.material.dispose();
-                    } else {
-                        console.warn('Boid material is undefined.');
-                    }
-    
-                    // Remove boid from the spatial grid
-                    const spatialKey = boidToRemove.giveSpatialKey();
-                    if (this.grid.cells[spatialKey]) {
-                        const index = this.grid.cells[spatialKey].indexOf(boidToRemove);
-                        if (index !== -1) {
-                            this.grid.cells[spatialKey].splice(index, 1);
-                        }
-                    }
-    
-                    console.log("Boid removed");
+    for (let i = 0; i < count; i++) {
+        if (this.boids.length != 0) {
+            // Remove boid from the array
+            const boidToRemove = this.boids.pop();
+
+            // Remove boid from the scene if it exists
+            if (boidToRemove && boidToRemove.boidMesh) {
+                this.scene.remove(boidToRemove.boidMesh);
+
+                // Dispose geometry and material if they exist
+                if (boidToRemove.boidMesh.geometry) {
+                    boidToRemove.boidMesh.geometry.dispose();
                 } else {
-                    console.warn("Boid to remove is undefined or has no boidMesh.");
+                    console.warn('Boid geometry is undefined.');
                 }
+
+                if (boidToRemove.boidMesh.material) {
+                    boidToRemove.boidMesh.material.dispose();
+                } else {
+                    console.warn('Boid material is undefined.');
+                }
+
+                // Remove boid from the spatial grid
+                const spatialKey = boidToRemove.giveSpatialKey();
+                if (this.grid.cells[spatialKey]) {
+                    const index = this.grid.cells[spatialKey].indexOf(boidToRemove);
+                    if (index !== -1) {
+                        this.grid.cells[spatialKey].splice(index, 1);
+                    }
+                }
+
+                console.log("Boid removed");
             } else {
-                console.warn("No more boids to remove.");
-                break;
+                console.warn("Boid to remove is undefined or has no boidMesh.");
             }
+        } else {
+            console.warn("No more boids to remove.");
+            break;
         }
     }
-    
+}
+
     
     
     
