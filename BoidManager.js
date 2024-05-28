@@ -195,7 +195,7 @@ export class BoidManager {
             boid.setLightPoint(boidLightPoint);
         }
     }
-    
+
     addObjectToGrid(object) {
         this.otherObjects.add(object);
     }
@@ -207,6 +207,8 @@ export class BoidManager {
     getRandomFloat(min, max) {
         return Math.random() * (max - min) + min;
     }
+
+
 }
 
  
