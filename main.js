@@ -92,22 +92,6 @@ function init() {
 }
 
 
-/*
-function loadModel(model){
-  if (currentModel) {
-    scene.remove(currentModel);
-  }
-  switch(model){
-    case 'american_style_house':
-      environment.loadGLTFEnvironmentModel('models/american_style_house/scene.gltf');
-      break;
-    case 'forest_house':
-      environment.loadGLTFEnvironmentModel('models/forest_house/scene.gltf');
-      break;
-  }
-}*/
-
-
 function initGraphics() {
   var ratio = window.innerWidth / window.innerHeight;
 
@@ -301,7 +285,7 @@ function resetSky(){
 function createObjects() {
   // ENVIRONMENT
 
-  var environment = new EnvironmentGenerator(scene, gcontrols.house);
+  environment = new EnvironmentGenerator(scene, gcontrols.house);
   //environment.loadGLTFEnvironmentModel('models/american_style_house/scene.gltf');
   //environment.loadGLTFEnvironmentModel('models/low_poly_wood_fence_on_grass/scene.gltf');
   //environment.loadGLTFEnvironmentModel('models/stylized_bush/scene.gltf');

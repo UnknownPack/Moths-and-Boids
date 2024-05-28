@@ -99,7 +99,7 @@ export class EnvironmentGenerator {
                     sca.makeScale(200/size.length(),200/size.length(),200/size.length());           
                     rot.makeRotationY(90*Math.PI/180);
                     tra.makeTranslation (-center.x,-center.y,-center.z);
-                    tra.makeTranslation(0.035,-0.025,-0.005);
+                    tra.makeTranslation(0.050,-0.030,0.01);
                     combined.multiply(rot);
                     console.log("forest");
                 } else if(filePath == 'models/low_poly_wood_fence_on_grass/scene.gltf'){
